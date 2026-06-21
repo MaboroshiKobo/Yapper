@@ -1,0 +1,17 @@
+name: Yapper
+version: "${version}"
+main: org.maboroshi.yapper.Yapper
+loader: org.maboroshi.yapper.Loader
+description: A chat plugin.
+author: Maboroshi
+website: https://github.com/MaboroshiKobo/Yapper
+api-version: "26.1"
+folia-supported: true
+dependencies:
+  server:
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+    Towny:
+      load: BEFORE
+      required: false

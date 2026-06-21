@@ -1,0 +1,98 @@
+plugins {
+    id 'java'
+    id 'com.gradleup.shadow' version '9.4.2'
+    id 'com.diffplug.spotless' version '8.7.0'
+}
+
+group = 'org.maboroshi'
+def baseVersion = '1.0.0'
+
+def getGitHash = { ->
+    if (System.getenv("GITHUB_SHA") != null) {
+        return System.getenv("GITHUB_SHA").take(6)
+    }
+    try {
+        def stdout = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'rev-parse', '--short=6'
+            standardOutput = stdout
+        }
+        return stdout.toString().trim()
+    } catch (Exception ignored) {
+        return "beta"
+    }
+}
+
+version = project.hasProperty('release') && project.property('release') == 'true' ?
+          baseVersion : "${baseVersion}-${getGitHash()}"
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://repo.papermc.io/repository/maven-public/' }
+    maven { url = 'https://jitpack.io' }
+    maven { url = 'https://repo.extendedclip.com/releases/' }
+    maven { url = 'https://repo.glaremasters.me/repository/towny/' }
+}
+
+dependencies {
+    compileOnly("io.papermc.paper:paper-api:26.1.2.build.+")
+    compileOnly("com.github.Exlll.ConfigLib:configlib-paper:dev-SNAPSHOT")
+    compileOnly("org.incendo:cloud-paper:2.0.0-beta.15")
+    compileOnly("org.incendo:cloud-annotations:2.0.0")
+    implementation("org.bstats:bstats-bukkit:3.2.1")
+    compileOnly("me.clip:placeholderapi:2.12.2")
+    compileOnly("com.palmergames.bukkit.towny:towny:0.103.0.4")
+}
+
+tasks.register("printVersion") {
+    group = "versioning"
+    doLast {
+        println("VERSION=${version}")
+    }
+}
+
+tasks.named('shadowJar') {
+    relocate 'org.bstats', 'org.maboroshi.yapper.libs.bstats'
+    exclude 'plugin.yml'
+    minimize()
+    archiveClassifier.set('')
+}
+
+build.dependsOn shadowJar
+build.dependsOn spotlessApply
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs.add("-parameters")
+}
+
+processResources {
+    def props = [version: version]
+    inputs.properties props
+    filteringCharset 'UTF-8'
+    filesMatching('paper-plugin.yml') {
+        expand props
+    }
+}
+
+spotless {
+    format 'misc', {
+        target '*.gradle', '.gitattributes', '.gitignore'
+        trimTrailingWhitespace()
+        leadingTabsToSpaces()
+        endWithNewline()
+    }
+
+    java {
+        importOrder()
+        removeUnusedImports()
+        forbidWildcardImports()
+        cleanthat()
+        palantirJavaFormat('2.91.0')
+        formatAnnotations()
+    }
+}
