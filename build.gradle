@@ -36,7 +36,7 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.1.2.build.+")
-    compileOnly("com.github.Exlll.ConfigLib:configlib-paper:dev-SNAPSHOT")
+    compileOnly("com.github.Exlll.ConfigLib:configlib-paper:v4.8.1")
     compileOnly("org.incendo:cloud-paper:2.0.0-beta.15")
     compileOnly("org.incendo:cloud-annotations:2.0.0")
     implementation("org.bstats:bstats-bukkit:3.2.1")
