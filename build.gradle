@@ -41,7 +41,7 @@ dependencies {
     compileOnly("org.incendo:cloud-annotations:2.0.0")
     implementation("org.bstats:bstats-bukkit:3.2.1")
     compileOnly("me.clip:placeholderapi:2.12.2")
-    compileOnly("com.palmergames.bukkit.towny:towny:0.103.0.4")
+    compileOnly("com.palmergames.bukkit.towny:towny:0.103.0.5")
 }
 
 tasks.register("printVersion") {
