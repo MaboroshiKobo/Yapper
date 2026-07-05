@@ -15,10 +15,8 @@ public class Loader implements PluginLoader {
         resolver.addRepository(
                 new RemoteRepository.Builder("papermc", "default", "https://repo.papermc.io/repository/maven-public/")
                         .build());
-        resolver.addRepository(new RemoteRepository.Builder("jitpack", "default", "https://jitpack.io/").build());
 
-        resolver.addDependency(
-                new Dependency(new DefaultArtifact("com.github.Exlll.ConfigLib:configlib-paper:dev-SNAPSHOT"), null));
+        resolver.addDependency(new Dependency(new DefaultArtifact("de.exlll:configlib-paper:4.8.1"), null));
         resolver.addDependency(new Dependency(new DefaultArtifact("org.incendo:cloud-paper:2.0.0-beta.15"), null));
         resolver.addDependency(new Dependency(new DefaultArtifact("org.incendo:cloud-annotations:2.0.0"), null));
 

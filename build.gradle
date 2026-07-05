@@ -29,14 +29,13 @@ version = project.hasProperty('release') && project.property('release') == 'true
 repositories {
     mavenCentral()
     maven { url = 'https://repo.papermc.io/repository/maven-public/' }
-    maven { url = 'https://jitpack.io' }
     maven { url = 'https://repo.extendedclip.com/releases/' }
     maven { url = 'https://repo.glaremasters.me/repository/towny/' }
 }
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.1.2.build.+")
-    compileOnly("com.github.Exlll.ConfigLib:configlib-paper:dev-SNAPSHOT")
+    compileOnly("de.exlll:configlib-paper:4.8.1")
     compileOnly("org.incendo:cloud-paper:2.0.0-beta.15")
     compileOnly("org.incendo:cloud-annotations:2.0.0")
     implementation("org.bstats:bstats-bukkit:3.2.1")
