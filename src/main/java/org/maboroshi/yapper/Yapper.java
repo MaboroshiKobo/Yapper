@@ -12,17 +12,21 @@ import org.maboroshi.yapper.command.YapperCommand;
 import org.maboroshi.yapper.config.ConfigManager;
 import org.maboroshi.yapper.listener.ChatListener;
 import org.maboroshi.yapper.util.Log;
+import org.maboroshi.yapper.util.YapperUtils;
 
 public final class Yapper extends JavaPlugin {
     private static Yapper plugin;
 
     private ConfigManager configManager;
+    public YapperUtils yapperUtils;
     private PaperCommandManager<CommandSourceStack> commandManager;
 
     @Override
     public void onEnable() {
         plugin = this;
         this.configManager = new ConfigManager(getDataFolder());
+        this.yapperUtils = new YapperUtils();
+
         Log.init(
                 getComponentLogger(),
                 () -> configManager != null
@@ -83,6 +87,10 @@ public final class Yapper extends JavaPlugin {
 
     public ConfigManager getConfigManager() {
         return configManager;
+    }
+
+    public YapperUtils getYapperUtils() {
+        return yapperUtils;
     }
 
     public PaperCommandManager<CommandSourceStack> getCommandManager() {

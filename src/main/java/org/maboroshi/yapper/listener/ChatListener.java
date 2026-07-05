@@ -2,15 +2,16 @@ package org.maboroshi.yapper.listener;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.minimessage.tag.standard.StandardTags;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -21,11 +22,13 @@ import org.maboroshi.yapper.config.settings.ChannelTemplate.ChannelFormat;
 import org.maboroshi.yapper.util.Log;
 
 public class ChatListener implements Listener {
+    private final Yapper plugin;
     private final ConfigManager config;
-
-    private final Map<UUID, String> playerActiveChannel = new HashMap<>();
+    private final Map<UUID, String> playerActiveChannel = new ConcurrentHashMap<>();
+    private final Map<Integer, MiniMessage> parserCache = new ConcurrentHashMap<>();
 
     public ChatListener(Yapper plugin) {
+        this.plugin = plugin;
         this.config = plugin.getConfigManager();
     }
 
@@ -53,18 +56,17 @@ public class ChatListener implements Listener {
 
         if (matchedFormat == null) return;
 
-        final String rawFormatString = matchedFormat.format;
+        String rawFormatString = matchedFormat.format;
+        String processedFormat = plugin.getYapperUtils().process(sender, rawFormatString);
+        String rawText = PlainTextComponentSerializer.plainText().serialize(event.message());
+        Component formattedContent = getEffectiveParser(sender).deserialize(rawText);
 
         event.renderer((source, sourceDisplayName, message, viewer) -> {
-            String plainMessage = MiniMessage.miniMessage().serialize(message);
-
-            Component formattedContent = parsePlayerContent(source, plainMessage);
-
             TagResolver chatResolvers = TagResolver.resolver(
                     Placeholder.component("player", sourceDisplayName),
                     Placeholder.component("message", formattedContent));
 
-            return MiniMessage.miniMessage().deserialize(rawFormatString, chatResolvers);
+            return MiniMessage.miniMessage().deserialize(processedFormat, chatResolvers);
         });
 
         if (channel.radius > 0) {
@@ -79,29 +81,21 @@ public class ChatListener implements Listener {
         }
     }
 
-    private Component parsePlayerContent(Player player, String rawText) {
-        List<TagResolver> permittedTags = new ArrayList<>();
+    private MiniMessage getEffectiveParser(Player player) {
+        int mask = 0;
+        if (player.hasPermission("yapper.chat.color")) mask |= 1;
+        if (player.hasPermission("yapper.chat.decorations")) mask |= 2;
+        if (player.hasPermission("yapper.chat.gradient")) mask |= 4;
+        if (player.hasPermission("yapper.chat.rainbow")) mask |= 8;
 
-        if (player.hasPermission("yapper.chat.color")) {
-            permittedTags.add(StandardTags.color());
-        }
-
-        if (player.hasPermission("yapper.chat.decorations")) {
-            permittedTags.add(StandardTags.decorations());
-        }
-
-        if (player.hasPermission("yapper.chat.gradient")) {
-            permittedTags.add(StandardTags.gradient());
-        }
-
-        if (player.hasPermission("yapper.chat.rainbow")) {
-            permittedTags.add(StandardTags.rainbow());
-        }
-
-        MiniMessage restrictedParser =
-                MiniMessage.builder().tags(TagResolver.resolver(permittedTags)).build();
-
-        return restrictedParser.deserialize(rawText);
+        return parserCache.computeIfAbsent(mask, k -> {
+            List<TagResolver> tags = new ArrayList<>();
+            if ((k & 1) != 0) tags.add(StandardTags.color());
+            if ((k & 2) != 0) tags.add(StandardTags.decorations());
+            if ((k & 4) != 0) tags.add(StandardTags.gradient());
+            if ((k & 8) != 0) tags.add(StandardTags.rainbow());
+            return MiniMessage.builder().tags(TagResolver.resolver(tags)).build();
+        });
     }
 
     public void setPlayerChannel(Player player, String channelId) {
