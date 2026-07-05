@@ -17,25 +17,30 @@ public final class Yapper extends JavaPlugin {
     private static Yapper plugin;
 
     private ConfigManager configManager;
+    private PaperCommandManager<CommandSourceStack> commandManager;
 
     @Override
     public void onEnable() {
         plugin = this;
-        this.configManager = new ConfigManager(this, getDataFolder());
-        Log.init(getComponentLogger(), () -> configManager != null && configManager.getMainConfig().debug);
+        this.configManager = new ConfigManager(getDataFolder());
+        Log.init(
+                getComponentLogger(),
+                () -> configManager != null
+                        && configManager.getMainConfig() != null
+                        && configManager.getMainConfig().debug);
 
         try {
             configManager.loadConfig();
             configManager.loadMessages();
         } catch (Exception e) {
-            Log.error("Failed to load configuration: " + e.getMessage());
+            getComponentLogger().error("Failed to load configuration files!", e);
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
 
         getServer().getPluginManager().registerEvents(new ChatListener(this), this);
 
-        PaperCommandManager<CommandSourceStack> commandManager = PaperCommandManager.builder()
+        this.commandManager = PaperCommandManager.builder()
                 .executionCoordinator(ExecutionCoordinator.simpleCoordinator())
                 .buildOnEnable(this);
 
@@ -69,6 +74,7 @@ public final class Yapper extends JavaPlugin {
     @Override
     public void onDisable() {
         Log.info("Yapper has been disabled!");
+        plugin = null;
     }
 
     public static Yapper getPlugin() {
@@ -77,5 +83,9 @@ public final class Yapper extends JavaPlugin {
 
     public ConfigManager getConfigManager() {
         return configManager;
+    }
+
+    public PaperCommandManager<CommandSourceStack> getCommandManager() {
+        return commandManager;
     }
 }

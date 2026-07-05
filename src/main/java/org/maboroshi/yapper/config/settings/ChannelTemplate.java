@@ -1,9 +1,7 @@
 package org.maboroshi.yapper.config.settings;
 
 import de.exlll.configlib.Comment;
-import de.exlll.configlib.ConfigLib;
 import de.exlll.configlib.Configuration;
-import de.exlll.configlib.NameFormatters;
 import de.exlll.configlib.YamlConfigurationProperties;
 import de.exlll.configlib.YamlConfigurations;
 import java.io.File;
@@ -14,10 +12,7 @@ import java.util.Map;
 
 @Configuration
 public class ChannelTemplate {
-    public static ChannelTemplate load(File channelTemplate) {
-        YamlConfigurationProperties properties = ConfigLib.BUKKIT_DEFAULT_PROPERTIES.toBuilder()
-                .setNameFormatter(NameFormatters.LOWER_KEBAB_CASE)
-                .build();
+    public static ChannelTemplate load(File channelTemplate, YamlConfigurationProperties properties) {
         return YamlConfigurations.update(channelTemplate.toPath(), ChannelTemplate.class, properties);
     }
 

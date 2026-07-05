@@ -10,38 +10,33 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import org.maboroshi.yapper.Yapper;
 import org.maboroshi.yapper.config.settings.ChannelTemplate;
 import org.maboroshi.yapper.config.settings.MainConfig;
-import org.maboroshi.yapper.config.settings.MainConfig.MainConfiguration;
 import org.maboroshi.yapper.config.settings.MessageConfig;
-import org.maboroshi.yapper.config.settings.MessageConfig.MessageConfiguration;
 import org.maboroshi.yapper.util.Log;
 
 public class ConfigManager {
     private final File dataFolder;
-    private final Yapper plugin;
-    private MainConfiguration mainConfig;
-    private MessageConfiguration messageConfig;
+    private MainConfig mainConfig;
+    private MessageConfig messageConfig;
     private final Map<String, ChannelTemplate> channels;
 
     private static final YamlConfigurationProperties PROPERTIES = ConfigLib.BUKKIT_DEFAULT_PROPERTIES.toBuilder()
             .setNameFormatter(NameFormatters.LOWER_KEBAB_CASE)
             .build();
 
-    public ConfigManager(Yapper plugin, File dataFolder) {
+    public ConfigManager(File dataFolder) {
         this.dataFolder = dataFolder;
-        this.plugin = plugin;
         this.channels = new HashMap<>();
     }
 
     public void loadConfig() {
-        this.mainConfig = MainConfig.load(dataFolder);
+        this.mainConfig = MainConfig.load(dataFolder, PROPERTIES);
         loadChannels();
     }
 
     public void loadMessages() {
-        this.messageConfig = MessageConfig.load(dataFolder);
+        this.messageConfig = MessageConfig.load(dataFolder, PROPERTIES);
     }
 
     private void loadChannels() {
@@ -69,7 +64,7 @@ public class ConfigManager {
                 }
 
                 String id = fileName.substring(0, fileName.lastIndexOf('.')).toLowerCase(Locale.ROOT);
-                ChannelTemplate channel = ChannelTemplate.load(file);
+                ChannelTemplate channel = ChannelTemplate.load(file, PROPERTIES);
                 channels.put(id, channel);
             }
         }
@@ -77,19 +72,19 @@ public class ConfigManager {
 
     public void saveConfig() {
         Path settingsPath = new File(dataFolder, "config.yml").toPath();
-        YamlConfigurations.save(settingsPath, MainConfiguration.class, mainConfig, PROPERTIES);
+        YamlConfigurations.save(settingsPath, MainConfig.class, mainConfig, PROPERTIES);
     }
 
     public void saveMessages() {
         Path path = new File(dataFolder, "messages.yml").toPath();
-        YamlConfigurations.save(path, MessageConfiguration.class, messageConfig, PROPERTIES);
+        YamlConfigurations.save(path, MessageConfig.class, messageConfig, PROPERTIES);
     }
 
-    public MainConfiguration getMainConfig() {
+    public MainConfig getMainConfig() {
         return mainConfig;
     }
 
-    public MessageConfiguration getMessageConfig() {
+    public MessageConfig getMessageConfig() {
         return messageConfig;
     }
 
