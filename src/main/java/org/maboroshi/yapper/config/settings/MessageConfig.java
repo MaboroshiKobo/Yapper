@@ -23,6 +23,9 @@ public class MessageConfig {
     @Comment("Help command messages and entry format.")
     public HelpMessages help = new HelpMessages();
 
+    @Comment("Channel-related messages and responses.")
+    public ChannelMessages channels = new ChannelMessages();
+
     @Configuration
     public static class CommandMessages {
         @Comment("Message shown when reload succeeds.")
@@ -45,5 +48,11 @@ public class MessageConfig {
 
         @Comment("Reload command usage.")
         public String reload = "<prefix> /yapper reload <gray>- Reloads plugin config</gray>";
+    }
+
+    @Configuration
+    public static class ChannelMessages {
+        @Comment("Message shown when switching to a channel.")
+        public String switchChannel = "<prefix> Switched to <channel> channel.";
     }
 }

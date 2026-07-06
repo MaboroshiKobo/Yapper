@@ -22,14 +22,11 @@ public class ChannelTemplate {
     @Comment("Channel commands.")
     public List<String> commands = new ArrayList<>(List.of("globalchat", "gc"));
 
-    @Comment("Channel shortcut.")
-    public String shortcut = "!gc";
-
     @Comment("Channel radius in blocks (0 means infinite/global).")
     public int radius = 0;
 
     public Map<String, ChannelFormat> formats = new LinkedHashMap<>(
-            Map.of("default", new ChannelFormat("", "<player> <dark_gray>➡</dark_gray> <message>")));
+            Map.of("default", new ChannelFormat("", "<name> <dark_gray>➡</dark_gray> <message>")));
 
     @Configuration
     public static class ChannelFormat {

@@ -47,7 +47,7 @@ public class ConfigManager {
             folder.mkdirs();
         }
 
-        File defaultFile = new File(folder, "default.yml");
+        File defaultFile = new File(folder, "global.yml");
         if (!defaultFile.exists()) {
             ChannelTemplate defaultChannel = new ChannelTemplate();
             YamlConfigurations.save(defaultFile.toPath(), ChannelTemplate.class, defaultChannel, PROPERTIES);

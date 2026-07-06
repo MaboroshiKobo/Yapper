@@ -1,13 +1,19 @@
 package org.maboroshi.yapper.command;
 
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.command.CommandSender;
 import org.incendo.cloud.annotations.Command;
 import org.incendo.cloud.annotations.Permission;
 import org.maboroshi.yapper.Yapper;
+import org.maboroshi.yapper.config.settings.MessageConfig;
 
 public class YapperCommand {
     private final Yapper plugin;
+    private final MiniMessage MM = MiniMessage.miniMessage();
 
     public YapperCommand(Yapper plugin) {
         this.plugin = plugin;
@@ -30,9 +36,17 @@ public class YapperCommand {
         CommandSender sender = source.getSender();
 
         if (plugin.reload()) {
-            sender.sendRichMessage("<green>Yapper configuration and channels reloaded successfully!</green>");
+            MessageConfig msgConfig = plugin.getConfigManager().getMessageConfig();
+            TagResolver tags = TagResolver.resolver(Placeholder.parsed("prefix", msgConfig.prefix));
+            Component message = MM.deserialize(msgConfig.commands.reloadSuccess, tags);
+            sender.sendMessage(message);
         } else {
-            sender.sendRichMessage("<red>Failed to reload configuration. Check console for details.</red>");
+            MessageConfig msgConfig = plugin.getConfigManager().getMessageConfig();
+            TagResolver tags = TagResolver.resolver(
+                    Placeholder.parsed("prefix", msgConfig.prefix),
+                    Placeholder.parsed("error", "Check console for details."));
+            Component message = MM.deserialize(msgConfig.commands.reloadFail, tags);
+            sender.sendMessage(message);
         }
     }
 }
