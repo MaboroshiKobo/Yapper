@@ -30,26 +30,50 @@ public class ConfigManager {
     }
 
     public void loadConfig() {
-        this.mainConfig = MainConfig.load(dataFolder, PROPERTIES);
+        try {
+            this.mainConfig = MainConfig.load(dataFolder, PROPERTIES);
+        } catch (Exception e) {
+            Log.error("Failed to parse config.yml: " + e.getMessage());
+            if (this.mainConfig == null) {
+                Log.warn("Initial load failed. Using default configuration fallback.");
+                this.mainConfig = new MainConfig();
+            } else {
+                Log.warn("Reload aborted. Retaining last known stable config state.");
+            }
+        }
         this.loadChannels();
     }
 
     public void loadMessages() {
-        this.messageConfig = MessageConfig.load(dataFolder, PROPERTIES);
+        try {
+            this.messageConfig = MessageConfig.load(dataFolder, PROPERTIES);
+        } catch (Exception e) {
+            Log.error("Failed to parse messages.yml: " + e.getMessage());
+            if (this.messageConfig == null) {
+                Log.warn("Initial load failed. Using default message template fallback.");
+                this.messageConfig = new MessageConfig();
+            } else {
+                Log.warn("Reload aborted. Retaining last known stable message state.");
+            }
+        }
     }
 
     private void loadChannels() {
-        this.channels.clear();
-
+        Map<String, ChannelTemplate> stagingChannels = new HashMap<>();
         File channelsDirectory = new File(dataFolder, "channels");
+
         if (!channelsDirectory.exists()) {
             channelsDirectory.mkdirs();
         }
 
         File defaultChannelFile = new File(channelsDirectory, "global.yml");
         if (!defaultChannelFile.exists()) {
-            ChannelTemplate defaultChannel = new ChannelTemplate();
-            YamlConfigurations.save(defaultChannelFile.toPath(), ChannelTemplate.class, defaultChannel, PROPERTIES);
+            try {
+                ChannelTemplate defaultChannel = new ChannelTemplate();
+                YamlConfigurations.save(defaultChannelFile.toPath(), ChannelTemplate.class, defaultChannel, PROPERTIES);
+            } catch (Exception e) {
+                Log.error("Could not generate default global.yml template: " + e.getMessage());
+            }
         }
 
         File[] channelFiles = channelsDirectory.listFiles((dir, name) -> name.endsWith(".yml"));
@@ -58,26 +82,46 @@ public class ConfigManager {
                 String fileName = channelFile.getName();
 
                 if (fileName.contains(" ")) {
-                    Log.warn("Channel file '" + fileName + "' contains spaces and was skipped.");
+                    Log.warn("Skipped channel file '" + fileName + "' due to unsupported spaces in the filename.");
                     continue;
                 }
 
                 String channelId =
                         fileName.substring(0, fileName.lastIndexOf('.')).toLowerCase(Locale.ROOT);
-                ChannelTemplate channelTemplate = ChannelTemplate.load(channelFile, PROPERTIES);
-                this.channels.put(channelId, channelTemplate);
+
+                try {
+                    ChannelTemplate channelTemplate = ChannelTemplate.load(channelFile, PROPERTIES);
+                    stagingChannels.put(channelId, channelTemplate);
+                } catch (Exception e) {
+                    Log.error("Failed to parse channel '" + fileName + "': " + e.getMessage());
+                    if (this.channels.containsKey(channelId)) {
+                        Log.warn("Using active in-memory instance for channel fallback: " + channelId);
+                        stagingChannels.put(channelId, this.channels.get(channelId));
+                    }
+                }
             }
         }
+
+        this.channels.clear();
+        this.channels.putAll(stagingChannels);
     }
 
     public void saveConfig() {
-        Path configPath = dataFolder.toPath().resolve("config.yml");
-        YamlConfigurations.save(configPath, MainConfig.class, mainConfig, PROPERTIES);
+        try {
+            Path configPath = dataFolder.toPath().resolve("config.yml");
+            YamlConfigurations.save(configPath, MainConfig.class, mainConfig, PROPERTIES);
+        } catch (Exception e) {
+            Log.error("Failed to save config.yml changes: " + e.getMessage());
+        }
     }
 
     public void saveMessages() {
-        Path messagesPath = dataFolder.toPath().resolve("messages.yml");
-        YamlConfigurations.save(messagesPath, MessageConfig.class, messageConfig, PROPERTIES);
+        try {
+            Path messagesPath = dataFolder.toPath().resolve("messages.yml");
+            YamlConfigurations.save(messagesPath, MessageConfig.class, messageConfig, PROPERTIES);
+        } catch (Exception e) {
+            Log.error("Failed to save messages.yml changes: " + e.getMessage());
+        }
     }
 
     public MainConfig getMainConfig() {

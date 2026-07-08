@@ -17,6 +17,13 @@ public class MainConfig {
         return YamlConfigurations.update(configPath, MainConfig.class, properties);
     }
 
+    public enum MacroAction {
+        TEXT,
+        INVENTORY,
+        ENDERCHEST,
+        ITEM
+    }
+
     @Comment("Enable debug mode to see detailed tag resolution and hook logs in the console.")
     public boolean debug = false;
 
@@ -32,7 +39,30 @@ public class MainConfig {
         "You can specify multiple aliases for a single macro by separating them with a pipe '|'.",
         "For example: 'balance|money|bal' allows players to use <balance>, <money>, or <bal>."
     })
-    public Map<String, String> macros = new LinkedHashMap<>(Map.of(
-            "item|i", "<dark_gray>[</dark_gray><held_item><dark_gray>]</dark_gray>",
-            "balance|money|bal", "<green>$<papi:vault_eco_balance_fixed></green>"));
+    public Map<String, MacroSetting> macros = new LinkedHashMap<>(Map.of(
+            "item",
+                    new MacroSetting(
+                            MacroAction.ITEM, "<dark_gray>[</dark_gray><item_preview><dark_gray>]</dark_gray>"),
+            "inventory|inv",
+                    new MacroSetting(
+                            MacroAction.INVENTORY,
+                            "<hover:show_text:'<gray>Click to view %player_name%'s inventory.</gray>'><dark_gray>[</dark_gray>%player_name%'s Inventory<dark_gray>]</dark_gray></hover>"),
+            "enderchest|ec",
+                    new MacroSetting(
+                            MacroAction.ENDERCHEST,
+                            "<hover:show_text:'<gray>Click to view %player_name%'s enderchest.</gray>'><dark_gray>[</dark_gray>%player_name%'s Ender Chest<dark_gray>]</dark_gray></hover>"),
+            "balance|money|bal", new MacroSetting(MacroAction.TEXT, "<green>$%vault_eco_balance_fixed%</green>")));
+
+    @Configuration
+    public static class MacroSetting {
+        public MacroAction action;
+        public String value;
+
+        public MacroSetting() {}
+
+        public MacroSetting(MacroAction action, String value) {
+            this.action = action;
+            this.value = value;
+        }
+    }
 }

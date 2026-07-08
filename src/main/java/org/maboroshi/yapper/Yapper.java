@@ -24,6 +24,7 @@ import org.maboroshi.yapper.config.settings.ChannelTemplate;
 import org.maboroshi.yapper.config.settings.MessageConfig;
 import org.maboroshi.yapper.hook.DiscordSRVHook;
 import org.maboroshi.yapper.listener.ChatListener;
+import org.maboroshi.yapper.listener.InventoryListener;
 import org.maboroshi.yapper.util.Log;
 import org.maboroshi.yapper.util.YapperUtils;
 
@@ -49,17 +50,12 @@ public final class Yapper extends JavaPlugin {
                         && configManager.getMainConfig() != null
                         && configManager.getMainConfig().debug);
 
-        try {
-            configManager.loadConfig();
-            configManager.loadMessages();
-        } catch (Exception e) {
-            getComponentLogger().error("Failed to load configuration files!", e);
-            getServer().getPluginManager().disablePlugin(this);
-            return;
-        }
+        configManager.loadConfig();
+        configManager.loadMessages();
 
         this.chatListener = new ChatListener(this);
         getServer().getPluginManager().registerEvents(chatListener, this);
+        getServer().getPluginManager().registerEvents(new InventoryListener(), this);
 
         this.commandManager = PaperCommandManager.builder()
                 .executionCoordinator(ExecutionCoordinator.simpleCoordinator())
@@ -135,21 +131,16 @@ public final class Yapper extends JavaPlugin {
     }
 
     public boolean reload() {
-        try {
-            configManager.loadConfig();
-            configManager.loadMessages();
+        configManager.loadConfig();
+        configManager.loadMessages();
 
-            registerChannelCommands();
+        registerChannelCommands();
 
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                player.updateCommands();
-            }
-
-            return true;
-        } catch (Exception e) {
-            Log.error("Failed to reload configuration: " + e.getMessage());
-            return false;
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.updateCommands();
         }
+
+        return true;
     }
 
     @Override
