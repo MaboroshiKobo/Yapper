@@ -12,8 +12,8 @@ import org.maboroshi.yapper.Yapper;
 import org.maboroshi.yapper.config.settings.MessageConfig;
 
 public class YapperCommand {
+    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private final Yapper plugin;
-    private final MiniMessage MM = MiniMessage.miniMessage();
 
     public YapperCommand(Yapper plugin) {
         this.plugin = plugin;
@@ -22,31 +22,39 @@ public class YapperCommand {
     @Command("yapper")
     @Permission("yapper.command")
     public void onAbout(CommandSourceStack source) {
-        CommandSender sender = source.getSender();
+        CommandSender commandSender = source.getSender();
+        MessageConfig messageConfig = plugin.getConfigManager().getMessageConfig();
 
         String version = plugin.getPluginMeta().getVersion();
         String authors = String.join(", ", plugin.getPluginMeta().getAuthors());
 
-        sender.sendRichMessage("Yapper version " + version + " by " + authors);
+        TagResolver aboutPlaceholders = TagResolver.resolver(
+                Placeholder.parsed("prefix", messageConfig.prefix),
+                Placeholder.parsed("version", version),
+                Placeholder.parsed("authors", authors));
+
+        commandSender.sendMessage(MINI_MESSAGE.deserialize(
+                "<prefix> Running version <yellow><version></yellow> developed by <gold><authors></gold>.",
+                aboutPlaceholders));
     }
 
     @Command("yapper reload")
     @Permission("yapper.command.reload")
     public void onReload(CommandSourceStack source) {
-        CommandSender sender = source.getSender();
+        CommandSender commandSender = source.getSender();
+        MessageConfig messageConfig = plugin.getConfigManager().getMessageConfig();
 
         if (plugin.reload()) {
-            MessageConfig msgConfig = plugin.getConfigManager().getMessageConfig();
-            TagResolver tags = TagResolver.resolver(Placeholder.parsed("prefix", msgConfig.prefix));
-            Component message = MM.deserialize(msgConfig.commands.reloadSuccess, tags);
-            sender.sendMessage(message);
+            TagResolver successPlaceholders = TagResolver.resolver(Placeholder.parsed("prefix", messageConfig.prefix));
+            Component successMessage =
+                    MINI_MESSAGE.deserialize(messageConfig.commands.reloadSuccess, successPlaceholders);
+            commandSender.sendMessage(successMessage);
         } else {
-            MessageConfig msgConfig = plugin.getConfigManager().getMessageConfig();
-            TagResolver tags = TagResolver.resolver(
-                    Placeholder.parsed("prefix", msgConfig.prefix),
-                    Placeholder.parsed("error", "Check console for details."));
-            Component message = MM.deserialize(msgConfig.commands.reloadFail, tags);
-            sender.sendMessage(message);
+            TagResolver failurePlaceholders = TagResolver.resolver(
+                    Placeholder.parsed("prefix", messageConfig.prefix),
+                    Placeholder.parsed("error", "Check console for structural validation errors."));
+            Component failureMessage = MINI_MESSAGE.deserialize(messageConfig.commands.reloadFail, failurePlaceholders);
+            commandSender.sendMessage(failureMessage);
         }
     }
 }

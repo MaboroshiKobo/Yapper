@@ -9,34 +9,33 @@ import org.bukkit.entity.Player;
 public class TownyHook {
     private static final TownyAPI API = TownyAPI.getInstance();
 
-    public static boolean isVisibleTo(Player sender, Player recipient, String integrationType) {
+    public static boolean isVisibleTo(Player sender, Player recipient, String channelId) {
         if (API == null) return false;
 
-        Resident senderRes = API.getResident(sender);
-        Resident recipientRes = API.getResident(recipient);
-        if (senderRes == null || recipientRes == null) return true;
+        Resident senderResident = API.getResident(sender);
+        Resident recipientResident = API.getResident(recipient);
 
-        switch (integrationType.toLowerCase()) {
-            case "towny-town":
-                Town senderTown = senderRes.getTownOrNull();
-                if (senderTown == null) return true;
-                return !senderTown.equals(recipientRes.getTownOrNull());
+        if (senderResident == null || recipientResident == null) return false;
 
-            case "towny-nation":
-                Nation senderNation = senderRes.getNationOrNull();
-                if (senderNation == null) return true;
-                return !senderNation.equals(recipientRes.getNationOrNull());
+        return switch (channelId.toLowerCase()) {
+            case "towny-town" -> {
+                Town senderTown = senderResident.getTownOrNull();
+                yield senderTown != null && senderTown.equals(recipientResident.getTownOrNull());
+            }
+            case "towny-nation" -> {
+                Nation senderNation = senderResident.getNationOrNull();
+                yield senderNation != null && senderNation.equals(recipientResident.getNationOrNull());
+            }
+            case "towny-alliance" -> {
+                Nation senderAllianceNation = senderResident.getNationOrNull();
+                Nation recipientNation = recipientResident.getNationOrNull();
 
-            case "towny-alliance":
-                Nation senderAllianceNation = senderRes.getNationOrNull();
-                if (senderAllianceNation == null) return true;
-                Nation recipientNation = recipientRes.getNationOrNull();
-                if (recipientNation == null) return true;
-                
-                return !senderAllianceNation.equals(recipientNation) && !senderAllianceNation.hasAlly(recipientNation);
-
-            default:
-                return false;
-        }
+                yield senderAllianceNation != null
+                        && recipientNation != null
+                        && (senderAllianceNation.equals(recipientNation)
+                                || senderAllianceNation.hasAlly(recipientNation));
+            }
+            default -> false;
+        };
     }
 }

@@ -19,6 +19,7 @@ public class Loader implements PluginLoader {
         resolver.addDependency(new Dependency(new DefaultArtifact("de.exlll:configlib-paper:4.8.1"), null));
         resolver.addDependency(new Dependency(new DefaultArtifact("org.incendo:cloud-paper:2.0.0-beta.17"), null));
         resolver.addDependency(new Dependency(new DefaultArtifact("org.incendo:cloud-annotations:2.0.0"), null));
+        resolver.addDependency(new Dependency(new DefaultArtifact("net.dv8tion:JDA:6.5.0"), null));
 
         classpathBuilder.addLibrary(resolver);
     }

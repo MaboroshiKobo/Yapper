@@ -12,28 +12,34 @@ import java.util.Map;
 
 @Configuration
 public class ChannelTemplate {
-    public static ChannelTemplate load(File channelTemplate, YamlConfigurationProperties properties) {
-        return YamlConfigurations.update(channelTemplate.toPath(), ChannelTemplate.class, properties);
+
+    public static ChannelTemplate load(File channelFile, YamlConfigurationProperties properties) {
+        return YamlConfigurations.update(channelFile.toPath(), ChannelTemplate.class, properties);
     }
 
-    @Comment("Channel name.")
+    @Comment("The display name of this chat channel.")
     public String name = "Global";
 
-    @Comment("Channel commands.")
+    @Comment("Command aliases that players can use to switch to this channel or talk in it directly.")
     public List<String> commands = new ArrayList<>(List.of("globalchat", "gc"));
 
-    @Comment("Channel radius in blocks (0 means infinite/global).")
+    @Comment("The text communication distance in blocks. Set this to 0 for infinite/global range.")
     public int radius = 0;
 
-    public Map<String, ChannelFormat> formats = new LinkedHashMap<>(
-            Map.of("default", new ChannelFormat("", "<name> <dark_gray>➡</dark_gray> <message>")));
+    @Comment({
+        "A list of chat formats prioritized from top to bottom.",
+        "The first format where a player meets the permission node condition will be applied.",
+        "Leave the permission empty to treat that specific format as the fallback layout."
+    })
+    public Map<String, ChannelFormat> formats =
+            new LinkedHashMap<>(Map.of("default", new ChannelFormat("", "<name> <dark_gray>➡</dark_gray> <message>")));
 
     @Configuration
     public static class ChannelFormat {
-        @Comment("Permission requirement.")
+        @Comment("The specific permission node required to use this formatting layout configuration.")
         public String permission;
 
-        @Comment("The chat format.")
+        @Comment("The visual chat design layout pattern. Supports MiniMessage tags, macros, and custom tags.")
         public String format;
 
         public ChannelFormat() {}

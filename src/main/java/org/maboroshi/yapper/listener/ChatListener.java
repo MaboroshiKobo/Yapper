@@ -1,35 +1,31 @@
 package org.maboroshi.yapper.listener;
 
+import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.minimessage.tag.Tag;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.maboroshi.yapper.Yapper;
 import org.maboroshi.yapper.config.ConfigManager;
 import org.maboroshi.yapper.config.settings.ChannelTemplate;
-import org.maboroshi.yapper.config.settings.ChannelTemplate.ChannelFormat;
 import org.maboroshi.yapper.hook.TownyHook;
+import org.maboroshi.yapper.renderer.YapperRenderer;
 import org.maboroshi.yapper.util.Log;
 
 public class ChatListener implements Listener {
-    private static final MiniMessage MM = MiniMessage.miniMessage();
-
     private final Yapper plugin;
     private final ConfigManager config;
-    private final Map<UUID, String> playerActiveChannel = new ConcurrentHashMap<>();
+
+    private final Map<UUID, String> activeChannels = new ConcurrentHashMap<>();
+    private final Map<UUID, String> temporaryChannelOverrides = new ConcurrentHashMap<>();
+    private final Map<UUID, String> lastUsedMessageChannels = new ConcurrentHashMap<>();
 
     public ChatListener(Yapper plugin) {
         this.plugin = plugin;
@@ -37,118 +33,108 @@ public class ChatListener implements Listener {
     }
 
     @EventHandler
-    public void onPlayerChat(AsyncChatEvent event) {
-        Player sender = event.getPlayer();
-        String channelId = playerActiveChannel.getOrDefault(sender.getUniqueId(), "global");
-        String rawText = PlainTextComponentSerializer.plainText().serialize(event.message());
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        UUID playerUuid = event.getPlayer().getUniqueId();
 
-        event.setCancelled(true);
+        activeChannels.remove(playerUuid);
+        temporaryChannelOverrides.remove(playerUuid);
+        lastUsedMessageChannels.remove(playerUuid);
 
-        Bukkit.getScheduler().runTask(plugin, () -> broadcastToChannel(sender, channelId, rawText));
+        Log.debug("Cleared active session maps for UUID: " + playerUuid);
     }
 
-    public void broadcastToChannel(Player sender, String channelId, String rawMessageText) {
-        ChannelTemplate channel = config.getChannel(channelId);
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlayerChat(AsyncChatEvent event) {
+        Player sender = event.getPlayer();
+        UUID senderUuid = sender.getUniqueId();
 
-        if (channel == null) {
-            channel = config.getChannel("global");
-            Log.error(
-                    "Channel '" + channelId + "' not found for player " + sender.getName() + ", using global channel.");
+        String channelId = temporaryChannelOverrides.remove(senderUuid);
+        Log.debug("Override removed = " + channelId);
+
+        if (channelId == null) {
+            channelId = activeChannels.getOrDefault(senderUuid, "global");
+        }
+        Log.debug("Chat event channel = " + channelId);
+
+        ChannelTemplate channelTemplate = config.getChannel(channelId);
+        if (channelTemplate == null) {
+            Log.error("Channel '" + channelId + "' not found for player " + sender.getName()
+                    + ", falling back to global.");
+            channelId = "global";
+            channelTemplate = config.getChannel("global");
         }
 
-        if (channel == null) {
+        if (channelTemplate == null) return;
+
+        if (!sender.hasPermission("yapper.channel." + channelId + ".send")) {
+            lastUsedMessageChannels.remove(senderUuid);
+            event.setCancelled(true);
+
+            sender.sendRichMessage("<red>You do not have permission to speak in the <yellow>"
+                    + channelTemplate.name
+                    + "</yellow><red> channel.</red>");
+
+            Log.debug("Cancelled chat from " + sender.getName() + " in channel '" + channelId
+                    + "' due to missing permission.");
             return;
         }
 
-        if (!channelId.equalsIgnoreCase("global") && !sender.hasPermission("yapper.channel." + channelId + ".send")) {
-            setPlayerChannel(sender, "global");
-            channel = config.getChannel("global");
+        lastUsedMessageChannels.put(senderUuid, channelId);
+        Log.debug("Stored lastMessageChannel = " + channelId);
 
-            if (channel == null) {
-                return;
+        String targetChannelId = channelId;
+        ChannelTemplate targetTemplate = channelTemplate;
+
+        event.viewers().removeIf(audience -> {
+            if (!(audience instanceof Player viewer)) {
+                return false;
             }
+            return !viewer.hasPermission("yapper.channel." + targetChannelId + ".view");
+        });
 
-            sender.sendRichMessage(
-                    "<red>You do not have permission to speak in that channel. Switched to global.</red>");
+        if (targetChannelId.startsWith("towny-")) {
+            event.viewers().removeIf(audience -> {
+                if (!(audience instanceof Player viewer)) {
+                    return false;
+                }
+                return !TownyHook.isVisibleTo(sender, viewer, targetChannelId);
+            });
         }
 
-        final ChannelTemplate finalChannel = channel;
+        if (targetTemplate.radius > 0) {
+            double radiusSquared = targetTemplate.radius * targetTemplate.radius;
+            Location senderLocation = sender.getLocation();
+            World senderWorld = senderLocation.getWorld();
 
-        ChannelFormat matchedFormat = null;
-        for (ChannelFormat f : channel.formats.values()) {
-            if (f.permission == null || f.permission.isEmpty() || sender.hasPermission(f.permission)) {
-                matchedFormat = f;
-                break;
-            }
+            event.viewers().removeIf(audience -> {
+                if (!(audience instanceof Player viewer)) {
+                    return false;
+                }
+                return !viewer.getWorld().equals(senderWorld)
+                        || senderLocation.distanceSquared(viewer.getLocation()) > radiusSquared;
+            });
         }
 
-        if (matchedFormat == null) {
-            return;
-        }
-
-        String rawFormatString = matchedFormat.format;
-        String parsedFormatString = plugin.getYapperUtils().process(sender, rawFormatString);
-
-        List<TagResolver> layoutTags =
-                new ArrayList<>(config.getMainConfig().components.size());
-        for (Map.Entry<String, String> entry : config.getMainConfig().components.entrySet()) {
-            String papiLine = plugin.getYapperUtils().process(sender, entry.getValue());
-            layoutTags.add(Placeholder.parsed(entry.getKey(), papiLine));
-        }
-
-        List<TagResolver> chatMacros =
-                new ArrayList<>(config.getMainConfig().macros.size());
-        for (Map.Entry<String, String> entry : config.getMainConfig().macros.entrySet()) {
-            String macroName = entry.getKey();
-            String macroValue = entry.getValue();
-
-            if (sender.hasPermission("yapper.macro." + macroName)) {
-                chatMacros.add(TagResolver.resolver(macroName, (queue, context) -> {
-                    String papiMacro = plugin.getYapperUtils().process(sender, macroValue);
-                    Component macroComponent = MM.deserialize(papiMacro);
-                    return Tag.inserting(macroComponent);
-                }));
-            }
-        }
-
-        TagResolver macroSystem = TagResolver.resolver(chatMacros);
-        Component formattedContent =
-                plugin.getYapperUtils().getEffectiveParser(sender).deserialize(rawMessageText, macroSystem);
-
-        TagResolver customTags = TagResolver.resolver(layoutTags);
-        TagResolver defaultTags = TagResolver.resolver(
-                Placeholder.parsed("name", sender.getName()),
-                Placeholder.component("displayname", sender.displayName()),
-                Placeholder.parsed("channel", finalChannel.name),
-                Placeholder.parsed("world", sender.getWorld().getName()),
-                Placeholder.component("message", formattedContent));
-
-        TagResolver allTags = TagResolver.resolver(customTags, defaultTags);
-        Component finalChatComponent = MM.deserialize(parsedFormatString, allTags);
-
-        Collection<Player> recipients = new ArrayList<>(Bukkit.getOnlinePlayers());
-
-        recipients.removeIf(viewer -> !viewer.hasPermission("yapper.channel." + channelId + ".view"));
-
-        if (channelId.startsWith("towny-")) {
-            recipients.removeIf(viewer -> !TownyHook.isVisibleTo(sender, viewer, channelId));
-        }
-
-        if (finalChannel.radius > 0) {
-            double radiusSquared = finalChannel.radius * finalChannel.radius;
-            var senderLocation = sender.getLocation();
-            recipients.removeIf(viewer -> !viewer.getWorld().equals(senderLocation.getWorld())
-                    || senderLocation.distanceSquared(viewer.getLocation()) > radiusSquared);
-        }
-
-        for (Player recipient : recipients) {
-            recipient.sendMessage(finalChatComponent);
-        }
-
-        Bukkit.getConsoleSender().sendMessage(finalChatComponent);
+        event.renderer(ChatRenderer.viewerUnaware(new YapperRenderer(plugin, targetTemplate)));
     }
 
     public void setPlayerChannel(Player player, String channelId) {
-        playerActiveChannel.put(player.getUniqueId(), channelId.toLowerCase());
+        activeChannels.put(player.getUniqueId(), channelId.toLowerCase());
+    }
+
+    public String getPlayerChannel(Player player) {
+        return activeChannels.getOrDefault(player.getUniqueId(), "global");
+    }
+
+    public String getCurrentMessageChannel(Player player) {
+        return lastUsedMessageChannels.getOrDefault(player.getUniqueId(), getPlayerChannel(player));
+    }
+
+    public void clearCurrentMessageChannel(Player player) {
+        lastUsedMessageChannels.remove(player.getUniqueId());
+    }
+
+    public void setTempChannelOverride(Player player, String channelId) {
+        temporaryChannelOverrides.put(player.getUniqueId(), channelId.toLowerCase());
     }
 }

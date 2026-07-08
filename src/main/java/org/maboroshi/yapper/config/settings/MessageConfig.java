@@ -9,50 +9,51 @@ import java.nio.file.Path;
 
 @Configuration
 public class MessageConfig {
+
     public static MessageConfig load(File dataFolder, YamlConfigurationProperties properties) {
-        Path messagesFile = new File(dataFolder, "messages.yml").toPath();
-        return YamlConfigurations.update(messagesFile, MessageConfig.class, properties);
+        Path messagesPath = dataFolder.toPath().resolve("messages.yml");
+        return YamlConfigurations.update(messagesPath, MessageConfig.class, properties);
     }
 
-    @Comment("The global prefix used in messages. Use <prefix> in other messages to include it.")
+    @Comment("The system-wide prefix variable. You can use <prefix> inside any other response below.")
     public String prefix = "<color:#ea76cb><bold>Yapper</bold> ➟</color>";
 
-    @Comment("Command-related messages and responses.")
+    @Comment("Core plugin command executions and administrative feedback responses.")
     public CommandMessages commands = new CommandMessages();
 
-    @Comment("Help command messages and entry format.")
+    @Comment("The informational menu headers and descriptive syntax layouts.")
     public HelpMessages help = new HelpMessages();
 
-    @Comment("Channel-related messages and responses.")
+    @Comment("Active channel switching notifications and interaction responses.")
     public ChannelMessages channels = new ChannelMessages();
 
     @Configuration
     public static class CommandMessages {
-        @Comment("Message shown when reload succeeds.")
+        @Comment("Message broadcasted to an administrator following a successful configurations refresh.")
         public String reloadSuccess = "<prefix> Plugin configuration reloaded successfully.";
 
-        @Comment("Message shown when reload fails.")
+        @Comment("Feedback sent to an operator when an internal parsing exception blocks a files reload.")
         public String reloadFail = "<prefix> Failed to reload configuration: <red><error></red>";
     }
 
     @Configuration
     public static class HelpMessages {
-        @Comment("Help command header.")
+        @Comment("The structural header text for the central assistance layout directory.")
         public String header = "<prefix> Help Menu";
 
-        @Comment("Main command usage.")
+        @Comment("Description for the standard plugin metrics syntax information command.")
         public String about = "<prefix> /yapper about <gray>- Shows plugin about information</gray>";
 
-        @Comment("Help command usage.")
+        @Comment("Description for displaying the operational commands list directory.")
         public String help = "<prefix> /yapper help <gray>- Shows this help menu</gray>";
 
-        @Comment("Reload command usage.")
+        @Comment("Description for the system files verification refresh execution path.")
         public String reload = "<prefix> /yapper reload <gray>- Reloads plugin config</gray>";
     }
 
     @Configuration
     public static class ChannelMessages {
-        @Comment("Message shown when switching to a channel.")
+        @Comment("The notification sent directly to a player when they alter their focus channel room target.")
         public String switchChannel = "<prefix> Switched to <channel> channel.";
     }
 }

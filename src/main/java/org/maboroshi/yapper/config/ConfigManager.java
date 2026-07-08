@@ -17,9 +17,9 @@ import org.maboroshi.yapper.util.Log;
 
 public class ConfigManager {
     private final File dataFolder;
+    private final Map<String, ChannelTemplate> channels = new HashMap<>();
     private MainConfig mainConfig;
     private MessageConfig messageConfig;
-    private final Map<String, ChannelTemplate> channels;
 
     private static final YamlConfigurationProperties PROPERTIES = ConfigLib.BUKKIT_DEFAULT_PROPERTIES.toBuilder()
             .setNameFormatter(NameFormatters.LOWER_KEBAB_CASE)
@@ -27,12 +27,11 @@ public class ConfigManager {
 
     public ConfigManager(File dataFolder) {
         this.dataFolder = dataFolder;
-        this.channels = new HashMap<>();
     }
 
     public void loadConfig() {
         this.mainConfig = MainConfig.load(dataFolder, PROPERTIES);
-        loadChannels();
+        this.loadChannels();
     }
 
     public void loadMessages() {
@@ -40,59 +39,60 @@ public class ConfigManager {
     }
 
     private void loadChannels() {
-        channels.clear();
+        this.channels.clear();
 
-        File folder = new File(dataFolder, "channels");
-        if (!folder.exists()) {
-            folder.mkdirs();
+        File channelsDirectory = new File(dataFolder, "channels");
+        if (!channelsDirectory.exists()) {
+            channelsDirectory.mkdirs();
         }
 
-        File defaultFile = new File(folder, "global.yml");
-        if (!defaultFile.exists()) {
+        File defaultChannelFile = new File(channelsDirectory, "global.yml");
+        if (!defaultChannelFile.exists()) {
             ChannelTemplate defaultChannel = new ChannelTemplate();
-            YamlConfigurations.save(defaultFile.toPath(), ChannelTemplate.class, defaultChannel, PROPERTIES);
+            YamlConfigurations.save(defaultChannelFile.toPath(), ChannelTemplate.class, defaultChannel, PROPERTIES);
         }
 
-        File[] files = folder.listFiles((dir, name) -> name.endsWith(".yml"));
-        if (files != null) {
-            for (File file : files) {
-                String fileName = file.getName();
+        File[] channelFiles = channelsDirectory.listFiles((dir, name) -> name.endsWith(".yml"));
+        if (channelFiles != null) {
+            for (File channelFile : channelFiles) {
+                String fileName = channelFile.getName();
 
                 if (fileName.contains(" ")) {
                     Log.warn("Channel file '" + fileName + "' contains spaces and was skipped.");
                     continue;
                 }
 
-                String id = fileName.substring(0, fileName.lastIndexOf('.')).toLowerCase(Locale.ROOT);
-                ChannelTemplate channel = ChannelTemplate.load(file, PROPERTIES);
-                channels.put(id, channel);
+                String channelId =
+                        fileName.substring(0, fileName.lastIndexOf('.')).toLowerCase(Locale.ROOT);
+                ChannelTemplate channelTemplate = ChannelTemplate.load(channelFile, PROPERTIES);
+                this.channels.put(channelId, channelTemplate);
             }
         }
     }
 
     public void saveConfig() {
-        Path settingsPath = new File(dataFolder, "config.yml").toPath();
-        YamlConfigurations.save(settingsPath, MainConfig.class, mainConfig, PROPERTIES);
+        Path configPath = dataFolder.toPath().resolve("config.yml");
+        YamlConfigurations.save(configPath, MainConfig.class, mainConfig, PROPERTIES);
     }
 
     public void saveMessages() {
-        Path path = new File(dataFolder, "messages.yml").toPath();
-        YamlConfigurations.save(path, MessageConfig.class, messageConfig, PROPERTIES);
+        Path messagesPath = dataFolder.toPath().resolve("messages.yml");
+        YamlConfigurations.save(messagesPath, MessageConfig.class, messageConfig, PROPERTIES);
     }
 
     public MainConfig getMainConfig() {
-        return mainConfig;
+        return this.mainConfig;
     }
 
     public MessageConfig getMessageConfig() {
-        return messageConfig;
+        return this.messageConfig;
     }
 
     public ChannelTemplate getChannel(String id) {
-        return channels.get(id.toLowerCase(Locale.ROOT));
+        return this.channels.get(id.toLowerCase(Locale.ROOT));
     }
 
     public Collection<String> getChannelIds() {
-        return channels.keySet();
+        return this.channels.keySet();
     }
 }

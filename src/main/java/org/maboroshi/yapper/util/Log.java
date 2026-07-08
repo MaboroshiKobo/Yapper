@@ -6,6 +6,7 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 
 public class Log {
+    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private static ComponentLogger logger;
     private static BooleanSupplier debugEnabled = () -> false;
 
@@ -16,26 +17,25 @@ public class Log {
 
     public static void info(String message, TagResolver... resolvers) {
         if (logger != null) {
-            logger.info(MiniMessage.miniMessage().deserialize(message, resolvers));
+            logger.info(MINI_MESSAGE.deserialize(message, resolvers));
         }
     }
 
     public static void warn(String message, TagResolver... resolvers) {
         if (logger != null) {
-            logger.warn(MiniMessage.miniMessage().deserialize(message, resolvers));
+            logger.warn(MINI_MESSAGE.deserialize(message, resolvers));
         }
     }
 
     public static void error(String message, TagResolver... resolvers) {
         if (logger != null) {
-            logger.error(MiniMessage.miniMessage().deserialize(message, resolvers));
+            logger.error(MINI_MESSAGE.deserialize(message, resolvers));
         }
     }
 
     public static void debug(String message, TagResolver... resolvers) {
         if (logger != null && debugEnabled.getAsBoolean()) {
-            logger.info(MiniMessage.miniMessage()
-                    .deserialize("<gray>[DEBUG]</gray> <gray>" + message + "</gray>", resolvers));
+            logger.info(MINI_MESSAGE.deserialize("<gray>[DEBUG]</gray> <white>" + message + "</white>", resolvers));
         }
     }
 }
