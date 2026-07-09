@@ -59,27 +59,46 @@ public class YapperRenderer implements ChatRenderer.ViewerUnaware {
         List<TagResolver> layoutResolvers = new ArrayList<>();
         boolean placeholderApiEnabled = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
 
+        final TagResolver papiResolver;
         if (placeholderApiEnabled) {
-            layoutResolvers.add(TagResolver.resolver("papi", (args, context) -> {
-                String papiQuery = args.popOr("The papi tag requires an internal identifier argument")
-                        .value();
+            papiResolver = TagResolver.resolver("papi", (args, context) -> {
+                if (!args.hasNext()) {
+                    return Tag.selfClosingInserting(Component.empty());
+                }
+
+                List<String> argList = new ArrayList<>();
+                while (args.hasNext()) {
+                    argList.add(args.pop().value());
+                }
+                String papiQuery = String.join(":", argList);
                 String papiText = PlaceholderAPI.setPlaceholders(source, "%" + papiQuery + "%");
-                Component placeholderComponent =
-                        LegacyComponentSerializer.legacySection().deserialize(papiText);
+
+                Component tempComponent;
+                if (papiText.contains("§")) {
+                    tempComponent = LegacyComponentSerializer.legacySection().deserialize(papiText);
+                } else {
+                    try {
+                        tempComponent = MINI_MESSAGE.deserialize(papiText);
+                    } catch (Exception e) {
+                        tempComponent = Component.text(papiText);
+                    }
+                }
+
+                final Component placeholderComponent = tempComponent;
+                String plainText = PlainTextComponentSerializer.plainText().serialize(placeholderComponent);
+                if (plainText.isEmpty()) {
+                    return Tag.styling(builder -> builder.merge(placeholderComponent.style()));
+                }
+
                 return Tag.selfClosingInserting(placeholderComponent);
-            }));
+            });
         } else {
-            layoutResolvers.add(
-                    TagResolver.resolver("papi", (args, context) -> Tag.selfClosingInserting(Component.empty())));
+            papiResolver = TagResolver.resolver("papi", (args, context) -> Tag.selfClosingInserting(Component.empty()));
         }
 
         for (Map.Entry<String, String> tagEntry :
                 plugin.getConfigManager().getMainConfig().customTags.entrySet()) {
-            String processedTagValue = tagEntry.getValue();
-            if (placeholderApiEnabled) {
-                processedTagValue = PlaceholderAPI.setPlaceholders(source, processedTagValue);
-            }
-            Component tagComponent = MINI_MESSAGE.deserialize(processedTagValue);
+            Component tagComponent = MINI_MESSAGE.deserialize(tagEntry.getValue(), papiResolver);
             layoutResolvers.add(Placeholder.component(tagEntry.getKey(), tagComponent));
         }
 
@@ -97,15 +116,11 @@ public class YapperRenderer implements ChatRenderer.ViewerUnaware {
                     continue;
                 }
 
-                String processedMacroValue = setting.value;
-                if (placeholderApiEnabled) {
-                    processedMacroValue = PlaceholderAPI.setPlaceholders(source, processedMacroValue);
-                }
-                final String finalMacroValue = processedMacroValue;
+                final String finalMacroValue = setting.value;
 
                 if (setting.action == MainConfig.MacroAction.INVENTORY) {
                     Component invComponent = MINI_MESSAGE
-                            .deserialize(finalMacroValue)
+                            .deserialize(finalMacroValue, papiResolver)
                             .clickEvent(ClickEvent.callback(
                                     audience -> {
                                         if (audience instanceof Player viewer) {
@@ -130,7 +145,7 @@ public class YapperRenderer implements ChatRenderer.ViewerUnaware {
 
                 if (setting.action == MainConfig.MacroAction.ENDERCHEST) {
                     Component ecComponent = MINI_MESSAGE
-                            .deserialize(finalMacroValue)
+                            .deserialize(finalMacroValue, papiResolver)
                             .clickEvent(ClickEvent.callback(
                                     audience -> {
                                         if (audience instanceof Player viewer) {
@@ -208,8 +223,9 @@ public class YapperRenderer implements ChatRenderer.ViewerUnaware {
                                     options -> options.uses(ClickCallback.UNLIMITED_USES)
                                             .lifetime(Duration.ofMinutes(5))));
 
-                    Component compiledMacro = MINI_MESSAGE.deserialize(
-                            finalMacroValue, TagResolver.resolver("item_preview", Tag.selfClosingInserting(itemCore)));
+                    TagResolver itemMacroResolver = TagResolver.resolver(
+                            papiResolver, TagResolver.resolver("item_preview", Tag.selfClosingInserting(itemCore)));
+                    Component compiledMacro = MINI_MESSAGE.deserialize(finalMacroValue, itemMacroResolver);
                     playerMsgResolvers.add(TagResolver.resolver(
                             normalizedAlias, (args, context) -> Tag.selfClosingInserting(compiledMacro)));
                     continue;
@@ -218,7 +234,7 @@ public class YapperRenderer implements ChatRenderer.ViewerUnaware {
                 if (setting.action == MainConfig.MacroAction.TEXT) {
                     playerMsgResolvers.add(TagResolver.resolver(normalizedAlias, (args, context) -> {
                         try {
-                            return Tag.selfClosingInserting(MINI_MESSAGE.deserialize(finalMacroValue));
+                            return Tag.selfClosingInserting(MINI_MESSAGE.deserialize(finalMacroValue, papiResolver));
                         } catch (Exception e) {
                             return Tag.selfClosingInserting(
                                     LegacyComponentSerializer.legacySection().deserialize(finalMacroValue));
@@ -233,6 +249,7 @@ public class YapperRenderer implements ChatRenderer.ViewerUnaware {
         Component formattedPlayerMessage =
                 playerChatParser.deserialize(plainTextMessage, TagResolver.resolver(playerMsgResolvers));
 
+        layoutResolvers.add(papiResolver);
         layoutResolvers.add(Placeholder.parsed("name", source.getName()));
         layoutResolvers.add(Placeholder.component("displayname", sourceDisplayName));
         layoutResolvers.add(Placeholder.parsed("channel", channel.name));
