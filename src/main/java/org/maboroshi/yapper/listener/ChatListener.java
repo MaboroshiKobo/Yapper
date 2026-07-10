@@ -2,9 +2,17 @@ package org.maboroshi.yapper.listener;
 
 import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import me.clip.placeholderapi.PlaceholderAPI;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.Tag;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -16,16 +24,15 @@ import org.maboroshi.yapper.Yapper;
 import org.maboroshi.yapper.config.ConfigManager;
 import org.maboroshi.yapper.config.settings.ChannelTemplate;
 import org.maboroshi.yapper.hook.TownyHook;
-import org.maboroshi.yapper.renderer.YapperRenderer;
+import org.maboroshi.yapper.manager.MacroProcessor;
+import org.maboroshi.yapper.renderer.ChannelRenderer;
 import org.maboroshi.yapper.util.Log;
 
 public class ChatListener implements Listener {
+    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
+
     private final Yapper plugin;
     private final ConfigManager config;
-
-    private final Map<UUID, String> activeChannels = new ConcurrentHashMap<>();
-    private final Map<UUID, String> temporaryChannelOverrides = new ConcurrentHashMap<>();
-    private final Map<UUID, String> lastUsedMessageChannels = new ConcurrentHashMap<>();
 
     public ChatListener(Yapper plugin) {
         this.plugin = plugin;
@@ -35,11 +42,7 @@ public class ChatListener implements Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         UUID playerUuid = event.getPlayer().getUniqueId();
-
-        activeChannels.remove(playerUuid);
-        temporaryChannelOverrides.remove(playerUuid);
-        lastUsedMessageChannels.remove(playerUuid);
-
+        plugin.getSessionManager().clearSession(playerUuid);
         Log.debug("Cleared active session maps for UUID: " + playerUuid);
     }
 
@@ -48,18 +51,10 @@ public class ChatListener implements Listener {
         Player sender = event.getPlayer();
         UUID senderUuid = sender.getUniqueId();
 
-        String channelId = temporaryChannelOverrides.remove(senderUuid);
-        Log.debug("Override removed = " + channelId);
-
-        if (channelId == null) {
-            channelId = activeChannels.getOrDefault(senderUuid, "global");
-        }
-        Log.debug("Chat event channel = " + channelId);
+        String channelId = plugin.getSessionManager().resolveTargetChannel(senderUuid);
 
         ChannelTemplate channelTemplate = config.getChannel(channelId);
         if (channelTemplate == null) {
-            Log.error("Channel '" + channelId + "' not found for player " + sender.getName()
-                    + ", falling back to global.");
             channelId = "global";
             channelTemplate = config.getChannel("global");
         }
@@ -67,36 +62,71 @@ public class ChatListener implements Listener {
         if (channelTemplate == null) return;
 
         if (!sender.hasPermission("yapper.channel." + channelId + ".send")) {
-            lastUsedMessageChannels.remove(senderUuid);
+            plugin.getSessionManager().clearCurrentMessageChannel(sender);
             event.setCancelled(true);
-
-            sender.sendRichMessage("<red>You do not have permission to speak in the <yellow>"
-                    + channelTemplate.name
+            sender.sendRichMessage("<red>You do not have permission to speak in the <yellow>" + channelTemplate.name
                     + "</yellow><red> channel.</red>");
-
-            Log.debug("Cancelled chat from " + sender.getName() + " in channel '" + channelId
-                    + "' due to missing permission.");
             return;
         }
 
-        lastUsedMessageChannels.put(senderUuid, channelId);
-        Log.debug("Stored lastMessageChannel = " + channelId);
+        plugin.getSessionManager().updateLastUsedChannel(senderUuid, channelId);
+
+        boolean placeholderApiEnabled = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
+        final TagResolver papiResolver;
+
+        if (placeholderApiEnabled) {
+            papiResolver = TagResolver.resolver("papi", (args, context) -> {
+                if (!args.hasNext()) return Tag.selfClosingInserting(Component.empty());
+
+                List<String> argList = new ArrayList<>();
+                while (args.hasNext()) argList.add(args.pop().value());
+
+                String papiQuery = String.join(":", argList);
+                String papiText = PlaceholderAPI.setPlaceholders(sender, "%" + papiQuery + "%");
+
+                Component tempComponent;
+                if (papiText.contains("§")) {
+                    tempComponent = LegacyComponentSerializer.legacySection().deserialize(papiText);
+                } else {
+                    try {
+                        tempComponent = MINI_MESSAGE.deserialize(papiText);
+                    } catch (Exception e) {
+                        tempComponent = Component.text(papiText);
+                    }
+                }
+
+                final Component finalComponent = tempComponent;
+                String plainText = PlainTextComponentSerializer.plainText().serialize(finalComponent);
+                if (plainText.isEmpty()) {
+                    return Tag.styling(builder -> builder.merge(finalComponent.style()));
+                }
+
+                return Tag.selfClosingInserting(finalComponent);
+            });
+        } else {
+            papiResolver = TagResolver.resolver("papi", (args, context) -> Tag.selfClosingInserting(Component.empty()));
+        }
+
+        List<TagResolver> playerMsgResolvers =
+                new MacroProcessor(plugin).buildMacroResolvers(sender, papiResolver, placeholderApiEnabled);
+
+        String plainTextMessage = PlainTextComponentSerializer.plainText().serialize(event.message());
+        MiniMessage playerChatParser = plugin.getFormatUtils().getChatParser(sender);
+        Component formattedPlayerMessage =
+                playerChatParser.deserialize(plainTextMessage, TagResolver.resolver(playerMsgResolvers));
+        event.message(formattedPlayerMessage);
 
         String targetChannelId = channelId;
         ChannelTemplate targetTemplate = channelTemplate;
 
         event.viewers().removeIf(audience -> {
-            if (!(audience instanceof Player viewer)) {
-                return false;
-            }
+            if (!(audience instanceof Player viewer)) return false;
             return !viewer.hasPermission("yapper.channel." + targetChannelId + ".view");
         });
 
         if (targetChannelId.startsWith("towny-")) {
             event.viewers().removeIf(audience -> {
-                if (!(audience instanceof Player viewer)) {
-                    return false;
-                }
+                if (!(audience instanceof Player viewer)) return false;
                 return !TownyHook.isVisibleTo(sender, viewer, targetChannelId);
             });
         }
@@ -107,34 +137,12 @@ public class ChatListener implements Listener {
             World senderWorld = senderLocation.getWorld();
 
             event.viewers().removeIf(audience -> {
-                if (!(audience instanceof Player viewer)) {
-                    return false;
-                }
+                if (!(audience instanceof Player viewer)) return false;
                 return !viewer.getWorld().equals(senderWorld)
                         || senderLocation.distanceSquared(viewer.getLocation()) > radiusSquared;
             });
         }
 
-        event.renderer(ChatRenderer.viewerUnaware(new YapperRenderer(plugin, targetTemplate)));
-    }
-
-    public void setPlayerChannel(Player player, String channelId) {
-        activeChannels.put(player.getUniqueId(), channelId.toLowerCase());
-    }
-
-    public String getPlayerChannel(Player player) {
-        return activeChannels.getOrDefault(player.getUniqueId(), "global");
-    }
-
-    public String getCurrentMessageChannel(Player player) {
-        return lastUsedMessageChannels.getOrDefault(player.getUniqueId(), getPlayerChannel(player));
-    }
-
-    public void clearCurrentMessageChannel(Player player) {
-        lastUsedMessageChannels.remove(player.getUniqueId());
-    }
-
-    public void setTempChannelOverride(Player player, String channelId) {
-        temporaryChannelOverrides.put(player.getUniqueId(), channelId.toLowerCase());
+        event.renderer(ChatRenderer.viewerUnaware(new ChannelRenderer(plugin, targetTemplate)));
     }
 }

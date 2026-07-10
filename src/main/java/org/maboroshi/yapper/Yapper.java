@@ -25,14 +25,16 @@ import org.maboroshi.yapper.config.settings.MessageConfig;
 import org.maboroshi.yapper.hook.DiscordSRVHook;
 import org.maboroshi.yapper.listener.ChatListener;
 import org.maboroshi.yapper.listener.InventoryListener;
+import org.maboroshi.yapper.manager.SessionManager;
+import org.maboroshi.yapper.util.FormatUtils;
 import org.maboroshi.yapper.util.Log;
-import org.maboroshi.yapper.util.YapperUtils;
 
 public final class Yapper extends JavaPlugin {
     private static Yapper plugin;
 
     private ConfigManager configManager;
-    private YapperUtils yapperUtils;
+    private FormatUtils formatUtils;
+    private SessionManager sessionManager;
     private PaperCommandManager<CommandSourceStack> commandManager;
     private final Set<String> registeredChannelCommands = new HashSet<>();
     private ChatListener chatListener;
@@ -42,7 +44,8 @@ public final class Yapper extends JavaPlugin {
     public void onEnable() {
         plugin = this;
         this.configManager = new ConfigManager(getDataFolder());
-        this.yapperUtils = new YapperUtils();
+        this.formatUtils = new FormatUtils();
+        this.sessionManager = new SessionManager();
 
         Log.init(
                 getComponentLogger(),
@@ -110,7 +113,7 @@ public final class Yapper extends JavaPlugin {
                             MessageConfig messageConfig = configManager.getMessageConfig();
 
                             if (messageOptional.isEmpty()) {
-                                chatListener.setPlayerChannel(player, channelId);
+                                sessionManager.setPlayerChannel(player, channelId);
 
                                 var templatePlaceholders = TagResolver.resolver(
                                         Placeholder.parsed("prefix", messageConfig.prefix),
@@ -119,7 +122,7 @@ public final class Yapper extends JavaPlugin {
                                 player.sendMessage(MINI_MESSAGE.deserialize(
                                         messageConfig.channels.switchChannel, templatePlaceholders));
                             } else {
-                                chatListener.setTempChannelOverride(player, channelId);
+                                sessionManager.setTempChannelOverride(player, channelId);
                                 player.chat(messageOptional.get());
                             }
                         });
@@ -133,13 +136,10 @@ public final class Yapper extends JavaPlugin {
     public boolean reload() {
         configManager.loadConfig();
         configManager.loadMessages();
-
         registerChannelCommands();
-
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.updateCommands();
         }
-
         return true;
     }
 
@@ -157,12 +157,12 @@ public final class Yapper extends JavaPlugin {
         return configManager;
     }
 
-    public YapperUtils getYapperUtils() {
-        return yapperUtils;
+    public FormatUtils getFormatUtils() {
+        return formatUtils;
     }
 
-    public PaperCommandManager<CommandSourceStack> getCommandManager() {
-        return commandManager;
+    public SessionManager getSessionManager() {
+        return sessionManager;
     }
 
     public ChatListener getChatListener() {

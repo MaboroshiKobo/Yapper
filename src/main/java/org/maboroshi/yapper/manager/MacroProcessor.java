@@ -1,21 +1,17 @@
-package org.maboroshi.yapper.renderer;
+package org.maboroshi.yapper.manager;
 
-import io.papermc.paper.chat.ChatRenderer;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickCallback;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.Tag;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.block.ShulkerBox;
 import org.bukkit.entity.Player;
@@ -25,84 +21,20 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.maboroshi.yapper.Yapper;
-import org.maboroshi.yapper.config.settings.ChannelTemplate;
-import org.maboroshi.yapper.config.settings.ChannelTemplate.ChannelFormat;
 import org.maboroshi.yapper.config.settings.MainConfig;
 import org.maboroshi.yapper.menu.PreviewHolder;
 
-public class YapperRenderer implements ChatRenderer.ViewerUnaware {
-
+public class MacroProcessor {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private final Yapper plugin;
-    private final ChannelTemplate channel;
 
-    public YapperRenderer(Yapper plugin, ChannelTemplate channel) {
+    public MacroProcessor(Yapper plugin) {
         this.plugin = plugin;
-        this.channel = channel;
     }
 
-    @Override
-    public Component render(Player source, Component sourceDisplayName, Component message) {
-        ChannelFormat matchedFormat = null;
-        for (ChannelFormat format : channel.formats.values()) {
-            if (format.permission == null || format.permission.isEmpty() || source.hasPermission(format.permission)) {
-                matchedFormat = format;
-                break;
-            }
-        }
+    public List<TagResolver> buildMacroResolvers(Player sender, TagResolver papiResolver, boolean papiEnabled) {
+        List<TagResolver> resolvers = new ArrayList<>();
 
-        if (matchedFormat == null) {
-            return message;
-        }
-
-        String layoutTemplate = matchedFormat.format;
-        List<TagResolver> layoutResolvers = new ArrayList<>();
-        boolean placeholderApiEnabled = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
-
-        final TagResolver papiResolver;
-        if (placeholderApiEnabled) {
-            papiResolver = TagResolver.resolver("papi", (args, context) -> {
-                if (!args.hasNext()) {
-                    return Tag.selfClosingInserting(Component.empty());
-                }
-
-                List<String> argList = new ArrayList<>();
-                while (args.hasNext()) {
-                    argList.add(args.pop().value());
-                }
-                String papiQuery = String.join(":", argList);
-                String papiText = PlaceholderAPI.setPlaceholders(source, "%" + papiQuery + "%");
-
-                Component tempComponent;
-                if (papiText.contains("§")) {
-                    tempComponent = LegacyComponentSerializer.legacySection().deserialize(papiText);
-                } else {
-                    try {
-                        tempComponent = MINI_MESSAGE.deserialize(papiText);
-                    } catch (Exception e) {
-                        tempComponent = Component.text(papiText);
-                    }
-                }
-
-                final Component placeholderComponent = tempComponent;
-                String plainText = PlainTextComponentSerializer.plainText().serialize(placeholderComponent);
-                if (plainText.isEmpty()) {
-                    return Tag.styling(builder -> builder.merge(placeholderComponent.style()));
-                }
-
-                return Tag.selfClosingInserting(placeholderComponent);
-            });
-        } else {
-            papiResolver = TagResolver.resolver("papi", (args, context) -> Tag.selfClosingInserting(Component.empty()));
-        }
-
-        for (Map.Entry<String, String> tagEntry :
-                plugin.getConfigManager().getMainConfig().customTags.entrySet()) {
-            Component tagComponent = MINI_MESSAGE.deserialize(tagEntry.getValue(), papiResolver);
-            layoutResolvers.add(Placeholder.component(tagEntry.getKey(), tagComponent));
-        }
-
-        List<TagResolver> playerMsgResolvers = new ArrayList<>();
         for (Map.Entry<String, MainConfig.MacroSetting> macroEntry :
                 plugin.getConfigManager().getMainConfig().macros.entrySet()) {
             String rawMacroName = macroEntry.getKey();
@@ -111,12 +43,12 @@ public class YapperRenderer implements ChatRenderer.ViewerUnaware {
 
             for (String alias : macroAliases) {
                 String normalizedAlias = alias.trim().toLowerCase();
-
-                if (!source.hasPermission("yapper.macro." + normalizedAlias)) {
+                if (!sender.hasPermission("yapper.macro." + normalizedAlias)) {
                     continue;
                 }
 
-                final String finalMacroValue = setting.value;
+                String finalMacroValue =
+                        plugin.getFormatUtils().resolveEmbeddedPlaceholders(sender, setting.value, papiEnabled);
 
                 if (setting.action == MainConfig.MacroAction.INVENTORY) {
                     Component invComponent = MINI_MESSAGE
@@ -128,18 +60,18 @@ public class YapperRenderer implements ChatRenderer.ViewerUnaware {
                                                 Inventory previewGui = Bukkit.createInventory(
                                                         new PreviewHolder(),
                                                         45,
-                                                        MINI_MESSAGE.deserialize("<dark_gray>" + source.getName()
+                                                        MINI_MESSAGE.deserialize("<dark_gray>" + sender.getName()
                                                                 + "'s Inventory</dark_gray>"));
                                                 previewGui.setContents(
-                                                        source.getInventory().getContents());
+                                                        sender.getInventory().getContents());
                                                 viewer.openInventory(previewGui);
                                             });
                                         }
                                     },
                                     options -> options.uses(ClickCallback.UNLIMITED_USES)
                                             .lifetime(Duration.ofMinutes(5))));
-                    playerMsgResolvers.add(TagResolver.resolver(
-                            normalizedAlias, (args, context) -> Tag.selfClosingInserting(invComponent)));
+                    resolvers.add(TagResolver.resolver(
+                            normalizedAlias, (args, ctx) -> Tag.selfClosingInserting(invComponent)));
                     continue;
                 }
 
@@ -153,40 +85,36 @@ public class YapperRenderer implements ChatRenderer.ViewerUnaware {
                                                 Inventory previewGui = Bukkit.createInventory(
                                                         new PreviewHolder(),
                                                         27,
-                                                        MINI_MESSAGE.deserialize("<dark_gray>" + source.getName()
+                                                        MINI_MESSAGE.deserialize("<dark_gray>" + sender.getName()
                                                                 + "'s Enderchest</dark_gray>"));
                                                 previewGui.setContents(
-                                                        source.getEnderChest().getContents());
+                                                        sender.getEnderChest().getContents());
                                                 viewer.openInventory(previewGui);
                                             });
                                         }
                                     },
                                     options -> options.uses(ClickCallback.UNLIMITED_USES)
                                             .lifetime(Duration.ofMinutes(5))));
-                    playerMsgResolvers.add(TagResolver.resolver(
-                            normalizedAlias, (args, context) -> Tag.selfClosingInserting(ecComponent)));
+                    resolvers.add(TagResolver.resolver(
+                            normalizedAlias, (args, ctx) -> Tag.selfClosingInserting(ecComponent)));
                     continue;
                 }
 
                 if (setting.action == MainConfig.MacroAction.ITEM) {
-                    ItemStack activeItem = source.getInventory().getItemInMainHand();
-                    if (activeItem.getType().isAir()) {
-                        continue;
-                    }
+                    ItemStack activeItem = sender.getInventory().getItemInMainHand();
+                    if (activeItem.getType().isAir()) continue;
 
                     Component cleanName;
                     ItemMeta activeMeta = activeItem.getItemMeta();
                     HoverEvent<?> hoverEvent;
 
                     if (activeMeta != null) {
-                        if (activeMeta.hasDisplayName()) {
-                            cleanName = activeMeta.displayName();
-                        } else if (activeMeta.hasItemName()) {
-                            cleanName = activeMeta.itemName();
-                        } else {
+                        if (activeMeta.hasDisplayName()) cleanName = activeMeta.displayName();
+                        else if (activeMeta.hasItemName()) cleanName = activeMeta.itemName();
+                        else
                             cleanName =
                                     Component.translatable(activeItem.getType().translationKey());
-                        }
+
                         hoverEvent = activeMeta.isHideTooltip()
                                 ? HoverEvent.showText(MINI_MESSAGE.deserialize("<gray>(Tooltip Hidden)</gray>"))
                                 : activeItem.asHoverEvent();
@@ -226,13 +154,13 @@ public class YapperRenderer implements ChatRenderer.ViewerUnaware {
                     TagResolver itemMacroResolver = TagResolver.resolver(
                             papiResolver, TagResolver.resolver("item_preview", Tag.selfClosingInserting(itemCore)));
                     Component compiledMacro = MINI_MESSAGE.deserialize(finalMacroValue, itemMacroResolver);
-                    playerMsgResolvers.add(TagResolver.resolver(
-                            normalizedAlias, (args, context) -> Tag.selfClosingInserting(compiledMacro)));
+                    resolvers.add(TagResolver.resolver(
+                            normalizedAlias, (args, ctx) -> Tag.selfClosingInserting(compiledMacro)));
                     continue;
                 }
 
                 if (setting.action == MainConfig.MacroAction.TEXT) {
-                    playerMsgResolvers.add(TagResolver.resolver(normalizedAlias, (args, context) -> {
+                    resolvers.add(TagResolver.resolver(normalizedAlias, (args, ctx) -> {
                         try {
                             return Tag.selfClosingInserting(MINI_MESSAGE.deserialize(finalMacroValue, papiResolver));
                         } catch (Exception e) {
@@ -243,21 +171,6 @@ public class YapperRenderer implements ChatRenderer.ViewerUnaware {
                 }
             }
         }
-
-        String plainTextMessage = PlainTextComponentSerializer.plainText().serialize(message);
-        MiniMessage playerChatParser = plugin.getYapperUtils().getChatParser(source);
-        Component formattedPlayerMessage =
-                playerChatParser.deserialize(plainTextMessage, TagResolver.resolver(playerMsgResolvers));
-
-        layoutResolvers.add(papiResolver);
-        layoutResolvers.add(Placeholder.parsed("name", source.getName()));
-        layoutResolvers.add(Placeholder.component("displayname", sourceDisplayName));
-        layoutResolvers.add(Placeholder.parsed("channel", channel.name));
-        layoutResolvers.add(Placeholder.parsed("world", source.getWorld().getName()));
-        layoutResolvers.add(Placeholder.component("message", formattedPlayerMessage));
-
-        TagResolver finalRegistry =
-                TagResolver.builder().resolvers(layoutResolvers).build();
-        return MINI_MESSAGE.deserialize(layoutTemplate, finalRegistry);
+        return resolvers;
     }
 }

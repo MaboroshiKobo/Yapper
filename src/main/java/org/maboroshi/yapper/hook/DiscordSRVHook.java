@@ -18,10 +18,10 @@ public class DiscordSRVHook {
         Player player = event.getPlayer();
         if (player == null) return;
 
-        String channelId = plugin.getChatListener().getCurrentMessageChannel(player);
+        String channelId = plugin.getSessionManager().getCurrentMessageChannel(player);
         Log.debug("DiscordSRV processing message for channel context: " + channelId);
 
         event.setChannel(channelId);
-        plugin.getChatListener().clearCurrentMessageChannel(player);
+        plugin.getSessionManager().clearCurrentMessageChannel(player);
     }
 }
