@@ -112,14 +112,15 @@ public class MacroProcessor {
                         if (activeMeta.hasDisplayName()) cleanName = activeMeta.displayName();
                         else if (activeMeta.hasItemName()) cleanName = activeMeta.itemName();
                         else
-                            cleanName =
-                                    Component.translatable(activeItem.getType().translationKey());
+                            cleanName = Component.translatable(
+                                    activeItem.getType().translationKey(), getFallbackItemName(activeItem));
 
                         hoverEvent = activeMeta.isHideTooltip()
                                 ? HoverEvent.showText(MINI_MESSAGE.deserialize("<gray>(Tooltip Hidden)</gray>"))
                                 : activeItem.asHoverEvent();
                     } else {
-                        cleanName = Component.translatable(activeItem.getType().translationKey());
+                        cleanName = Component.translatable(
+                                activeItem.getType().translationKey(), getFallbackItemName(activeItem));
                         hoverEvent = activeItem.asHoverEvent();
                     }
 
@@ -172,5 +173,26 @@ public class MacroProcessor {
             }
         }
         return resolvers;
+    }
+
+    private String getFallbackItemName(ItemStack item) {
+        return capitalizeWords(item.getType().name().replace("_", " ").toLowerCase());
+    }
+
+    private String capitalizeWords(String input) {
+        StringBuilder sb = new StringBuilder();
+        boolean capitalizeNext = true;
+        for (char c : input.toCharArray()) {
+            if (c == ' ') {
+                capitalizeNext = true;
+                sb.append(c);
+            } else if (capitalizeNext) {
+                sb.append(Character.toUpperCase(c));
+                capitalizeNext = false;
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 }
