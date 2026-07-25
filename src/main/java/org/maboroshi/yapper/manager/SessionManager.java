@@ -19,6 +19,7 @@ public class SessionManager {
 
     public void loadSession(Player player) {
         UUID playerUuid = player.getUniqueId();
+        clearSession(playerUuid);
         PersistentDataContainer pdc = player.getPersistentDataContainer();
 
         String active = pdc.get(Keys.ACTIVE_CHANNEL, PersistentDataType.STRING);
