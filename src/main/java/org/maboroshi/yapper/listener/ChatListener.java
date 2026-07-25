@@ -107,10 +107,12 @@ public class ChatListener implements Listener {
             papiResolver = TagResolver.resolver("papi", (args, context) -> Tag.selfClosingInserting(Component.empty()));
         }
 
+        MacroProcessor processor = new MacroProcessor(plugin);
         List<TagResolver> playerMsgResolvers =
-                new MacroProcessor(plugin).buildMacroResolvers(sender, papiResolver, placeholderApiEnabled);
+                processor.buildMacroResolvers(sender, papiResolver, placeholderApiEnabled);
 
         String plainTextMessage = PlainTextComponentSerializer.plainText().serialize(event.message());
+
         MiniMessage playerChatParser = plugin.getFormatUtils().getChatParser(sender);
         Component formattedPlayerMessage =
                 playerChatParser.deserialize(plainTextMessage, TagResolver.resolver(playerMsgResolvers));

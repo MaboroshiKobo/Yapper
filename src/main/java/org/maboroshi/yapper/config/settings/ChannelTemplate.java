@@ -5,9 +5,7 @@ import de.exlll.configlib.Configuration;
 import de.exlll.configlib.YamlConfigurationProperties;
 import de.exlll.configlib.YamlConfigurations;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 @Configuration
@@ -19,9 +17,6 @@ public class ChannelTemplate {
 
     @Comment("The display name of this chat channel.")
     public String name = "Global";
-
-    @Comment("Command aliases that players can use to switch to this channel or talk in it directly.")
-    public List<String> commands = new ArrayList<>(List.of("globalchat", "gc"));
 
     @Comment("The text communication distance in blocks. Set this to 0 for infinite/global range.")
     public int radius = 0;

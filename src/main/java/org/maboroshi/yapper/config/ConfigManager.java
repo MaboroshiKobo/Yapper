@@ -136,6 +136,10 @@ public class ConfigManager {
         return this.channels.get(id.toLowerCase(Locale.ROOT));
     }
 
+    public Map<String, ChannelTemplate> getChannels() {
+        return this.channels;
+    }
+
     public Collection<String> getChannelIds() {
         return this.channels.keySet();
     }
