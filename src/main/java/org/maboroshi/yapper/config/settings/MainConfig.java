@@ -18,10 +18,10 @@ public class MainConfig {
     }
 
     public enum MacroAction {
-        TEXT,
+        ITEM,
         INVENTORY,
         ENDERCHEST,
-        ITEM
+        TEXT
     }
 
     @Comment("Enable debug mode to see detailed logs in the console.")
@@ -35,11 +35,11 @@ public class MainConfig {
 
     @Comment({
         "Chat macros that players with permission can type inline within their messages.",
-        "",
+        " ",
         "You can specify multiple aliases for a single macro by separating them with a pipe `|`.",
         "For example: 'balance|money|bal' allows players to use <balance>, <money>, or <bal>.",
-        "",
-        "For interactive macros (ITEM, INVENTORY, ENDERCHEST), you can define `lifetime-minutes`",
+        " ",
+        "For interactive macros (ITEM, INVENTORY, ENDERCHEST), you can define `preview-lifetime`",
         "to control how many minutes the clickable preview remains active before expiring."
     })
     public Map<String, MacroSetting> macros = new LinkedHashMap<>(Map.of(
@@ -56,25 +56,26 @@ public class MainConfig {
                             MacroAction.ENDERCHEST,
                             "<hover:show_text:'<gray>Click to view %player_name%'s enderchest.</gray>'><dark_gray>[</dark_gray>%player_name%'s Ender Chest<dark_gray>]</dark_gray></hover>",
                             5),
-            "balance|money|bal", new MacroSetting(MacroAction.TEXT, "<green>$%vault_eco_balance_fixed%</green>")));
+            "money|balance|bal", new MacroSetting(MacroAction.TEXT, "<green>$%vault_eco_balance_fixed%</green>")));
 
     @Configuration
     public static class MacroSetting {
         public MacroAction action;
         public String value;
-        public int lifetimeMinutes = 5;
+        public Integer previewLifetime;
 
         public MacroSetting() {}
 
         public MacroSetting(MacroAction action, String value) {
             this.action = action;
             this.value = value;
+            this.previewLifetime = null;
         }
 
-        public MacroSetting(MacroAction action, String value, int lifetimeMinutes) {
+        public MacroSetting(MacroAction action, String value, int previewLifetime) {
             this.action = action;
             this.value = value;
-            this.lifetimeMinutes = lifetimeMinutes;
+            this.previewLifetime = previewLifetime;
         }
     }
 }

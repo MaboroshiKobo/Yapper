@@ -69,7 +69,7 @@ public class MacroProcessor {
                                         }
                                     },
                                     options -> options.uses(ClickCallback.UNLIMITED_USES)
-                                            .lifetime(Duration.ofMinutes(setting.lifetimeMinutes))));
+                                            .lifetime(Duration.ofMinutes(setting.previewLifetime))));
                     resolvers.add(TagResolver.resolver(
                             normalizedAlias, (args, ctx) -> Tag.selfClosingInserting(invComponent)));
                     continue;
@@ -94,7 +94,7 @@ public class MacroProcessor {
                                         }
                                     },
                                     options -> options.uses(ClickCallback.UNLIMITED_USES)
-                                            .lifetime(Duration.ofMinutes(setting.lifetimeMinutes))));
+                                            .lifetime(Duration.ofMinutes(setting.previewLifetime))));
                     resolvers.add(TagResolver.resolver(
                             normalizedAlias, (args, ctx) -> Tag.selfClosingInserting(ecComponent)));
                     continue;
@@ -150,7 +150,7 @@ public class MacroProcessor {
                                         }
                                     },
                                     options -> options.uses(ClickCallback.UNLIMITED_USES)
-                                            .lifetime(Duration.ofMinutes(setting.lifetimeMinutes))));
+                                            .lifetime(Duration.ofMinutes(setting.previewLifetime))));
 
                     TagResolver itemMacroResolver = TagResolver.resolver(
                             papiResolver, TagResolver.resolver("item_preview", Tag.selfClosingInserting(itemCore)));
