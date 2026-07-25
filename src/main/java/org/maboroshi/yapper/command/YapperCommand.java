@@ -4,17 +4,10 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.minimessage.tag.Tag;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.incendo.cloud.annotations.Argument;
@@ -25,9 +18,6 @@ import org.incendo.cloud.context.CommandContext;
 import org.maboroshi.yapper.Yapper;
 import org.maboroshi.yapper.config.settings.ChannelTemplate;
 import org.maboroshi.yapper.config.settings.MessageConfig;
-import org.maboroshi.yapper.hook.TownyHook;
-import org.maboroshi.yapper.manager.MacroProcessor;
-import org.maboroshi.yapper.renderer.ChannelRenderer;
 
 public class YapperCommand {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
@@ -171,7 +161,7 @@ public class YapperCommand {
         String targetId = channelId;
         if (targetId == null || targetId.isEmpty()) {
             if (sender instanceof Player player) {
-                targetId = plugin.getSessionManager().resolveTargetChannel(player.getUniqueId());
+                targetId = plugin.getSessionManager().getCurrentMessageChannel(player);
             } else {
                 targetId = "global";
             }
@@ -240,77 +230,7 @@ public class YapperCommand {
         }
 
         String rawMessage = String.join(" ", messageArgs);
-        dispatchQuickMessage(player, channelId, channel, rawMessage);
-    }
-
-    private void dispatchQuickMessage(Player sender, String channelId, ChannelTemplate template, String rawMessage) {
-        boolean placeholderApiEnabled = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
-        final TagResolver papiResolver;
-
-        if (placeholderApiEnabled) {
-            papiResolver = TagResolver.resolver("papi", (args, context) -> {
-                if (!args.hasNext()) return Tag.selfClosingInserting(Component.empty());
-
-                List<String> argList = new ArrayList<>();
-                while (args.hasNext()) argList.add(args.pop().value());
-
-                String papiQuery = String.join(":", argList);
-                String papiText = PlaceholderAPI.setPlaceholders(sender, "%" + papiQuery + "%");
-
-                Component tempComponent;
-                if (papiText.contains("§")) {
-                    tempComponent = LegacyComponentSerializer.legacySection().deserialize(papiText);
-                } else {
-                    try {
-                        tempComponent = MINI_MESSAGE.deserialize(papiText);
-                    } catch (Exception e) {
-                        tempComponent = Component.text(papiText);
-                    }
-                }
-
-                final Component finalComponent = tempComponent;
-                String plainText = PlainTextComponentSerializer.plainText().serialize(finalComponent);
-                if (plainText.isEmpty()) {
-                    return Tag.styling(builder -> builder.merge(finalComponent.style()));
-                }
-
-                return Tag.selfClosingInserting(finalComponent);
-            });
-        } else {
-            papiResolver = TagResolver.resolver("papi", (args, context) -> Tag.selfClosingInserting(Component.empty()));
-        }
-
-        MacroProcessor processor = new MacroProcessor(plugin);
-        List<TagResolver> playerMsgResolvers =
-                processor.buildMacroResolvers(sender, papiResolver, placeholderApiEnabled);
-
-        MiniMessage playerChatParser = plugin.getFormatUtils().getChatParser(sender);
-        Component formattedPlayerMessage =
-                playerChatParser.deserialize(rawMessage, TagResolver.resolver(playerMsgResolvers));
-
-        ChannelRenderer renderer = new ChannelRenderer(plugin, template);
-        Component finalOutput = renderer.render(sender, sender.displayName(), formattedPlayerMessage);
-
-        double radiusSquared = template.radius * template.radius;
-        Location senderLocation = sender.getLocation();
-        World senderWorld = senderLocation.getWorld();
-
-        for (Player viewer : Bukkit.getOnlinePlayers()) {
-            if (!viewer.hasPermission("yapper.channel." + channelId + ".view")) continue;
-            if (plugin.getSessionManager().isChannelHidden(viewer.getUniqueId(), channelId)) continue;
-
-            if (channelId.startsWith("towny-") && !TownyHook.isVisibleTo(sender, viewer, channelId)) {
-                continue;
-            }
-
-            if (template.radius > 0) {
-                if (!viewer.getWorld().equals(senderWorld)
-                        || senderLocation.distanceSquared(viewer.getLocation()) > radiusSquared) {
-                    continue;
-                }
-            }
-
-            viewer.sendMessage(finalOutput);
-        }
+        plugin.getSessionManager().setTempChannelOverride(player, channelId);
+        player.chat(rawMessage);
     }
 }
