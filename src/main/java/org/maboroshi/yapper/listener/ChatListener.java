@@ -9,6 +9,7 @@ import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.Tag;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -24,6 +25,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.maboroshi.yapper.Yapper;
 import org.maboroshi.yapper.config.ConfigManager;
 import org.maboroshi.yapper.config.settings.ChannelTemplate;
+import org.maboroshi.yapper.config.settings.MessageConfig;
 import org.maboroshi.yapper.hook.TownyHook;
 import org.maboroshi.yapper.manager.MacroProcessor;
 import org.maboroshi.yapper.renderer.ChannelRenderer;
@@ -71,8 +73,14 @@ public class ChatListener implements Listener {
         if (!sender.hasPermission("yapper.channel." + channelId + ".send")) {
             plugin.getSessionManager().clearCurrentMessageChannel(sender);
             event.setCancelled(true);
-            sender.sendRichMessage("<red>You do not have permission to speak in the <yellow>" + channelTemplate.name
-                    + "</yellow><red> channel.</red>");
+
+            MessageConfig msgConfig = plugin.getConfigManager().getMessageConfig();
+            TagResolver placeholders = TagResolver.resolver(
+                    Placeholder.parsed("prefix", msgConfig.prefix),
+                    Placeholder.parsed("channel", channelTemplate.name),
+                    Placeholder.parsed("channel_id", channelId));
+
+            sender.sendMessage(MINI_MESSAGE.deserialize(msgConfig.channels.noPermissionSend, placeholders));
             return;
         }
 

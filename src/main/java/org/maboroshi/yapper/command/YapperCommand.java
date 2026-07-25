@@ -57,9 +57,7 @@ public class YapperCommand {
                 Placeholder.parsed("version", version),
                 Placeholder.parsed("authors", authors));
 
-        commandSender.sendMessage(MINI_MESSAGE.deserialize(
-                "<prefix> Running version <yellow><version></yellow> developed by <gold><authors></gold>.",
-                aboutPlaceholders));
+        commandSender.sendMessage(MINI_MESSAGE.deserialize(messageConfig.commands.about, aboutPlaceholders));
     }
 
     @Command("yapper reload")
@@ -89,7 +87,7 @@ public class YapperCommand {
         MessageConfig msgConfig = plugin.getConfigManager().getMessageConfig();
 
         sender.sendMessage(MINI_MESSAGE.deserialize(
-                "<prefix> <gray>Available Chat Channels:</gray>", Placeholder.parsed("prefix", msgConfig.prefix)));
+                msgConfig.channels.listHeader, Placeholder.parsed("prefix", msgConfig.prefix)));
 
         Map<String, ChannelTemplate> channels = plugin.getConfigManager().getChannels();
         for (Map.Entry<String, ChannelTemplate> entry : channels.entrySet()) {
@@ -97,15 +95,11 @@ public class YapperCommand {
             ChannelTemplate template = entry.getValue();
 
             if (sender.hasPermission("yapper.channel." + channelId + ".view")) {
-                String line = "<gray>- </gray><yellow>" + template.name + "</yellow> <dark_gray>(" + channelId
-                        + ")</dark_gray> "
-                        + "<click:run_command:'/yapper channel " + channelId
-                        + "'><hover:show_text:'<gray>Click to switch to </gray><yellow>" + template.name
-                        + "</yellow>'><green>[Switch]</green></hover></click> "
-                        + "<click:run_command:'/yapper channel hide " + channelId
-                        + "'><hover:show_text:'<gray>Click to toggle visibility for </gray><yellow>" + template.name
-                        + "</yellow>'><red>[Hide/Show]</red></hover></click>";
-                sender.sendMessage(MINI_MESSAGE.deserialize(line));
+                TagResolver placeholders = TagResolver.resolver(
+                        Placeholder.parsed("prefix", msgConfig.prefix),
+                        Placeholder.parsed("channel", template.name),
+                        Placeholder.parsed("channel_id", channelId));
+                sender.sendMessage(MINI_MESSAGE.deserialize(msgConfig.channels.listItem, placeholders));
             }
         }
     }
@@ -115,39 +109,45 @@ public class YapperCommand {
     public void onChannelHide(
             CommandSourceStack source, @Argument(value = "channelId", suggestions = "channels") String channelId) {
         CommandSender sender = source.getSender();
+        MessageConfig msgConfig = plugin.getConfigManager().getMessageConfig();
+
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(MINI_MESSAGE.deserialize("<red>Only players can hide chat channels.</red>"));
+            sender.sendMessage(MINI_MESSAGE.deserialize(
+                    msgConfig.commands.playerOnly, Placeholder.parsed("prefix", msgConfig.prefix)));
             return;
         }
 
-        MessageConfig msgConfig = plugin.getConfigManager().getMessageConfig();
         ChannelTemplate channel = plugin.getConfigManager().getChannel(channelId);
 
         if (channel == null) {
             player.sendMessage(MINI_MESSAGE.deserialize(
-                    "<prefix> <red>Channel <yellow>" + channelId + "</yellow> does not exist.</red>",
-                    Placeholder.parsed("prefix", msgConfig.prefix)));
+                    msgConfig.channels.notFound,
+                    TagResolver.resolver(
+                            Placeholder.parsed("prefix", msgConfig.prefix),
+                            Placeholder.parsed("channel_id", channelId))));
             return;
         }
 
         if (!player.hasPermission("yapper.channel." + channelId + ".view")) {
             player.sendMessage(MINI_MESSAGE.deserialize(
-                    "<prefix> <red>You do not have permission to view <yellow>" + channel.name + "</yellow>.</red>",
-                    Placeholder.parsed("prefix", msgConfig.prefix)));
+                    msgConfig.channels.noPermissionView,
+                    TagResolver.resolver(
+                            Placeholder.parsed("prefix", msgConfig.prefix),
+                            Placeholder.parsed("channel", channel.name),
+                            Placeholder.parsed("channel_id", channelId))));
             return;
         }
 
         boolean hidden = plugin.getSessionManager().toggleChannelHide(player, channelId);
+        TagResolver placeholders = TagResolver.resolver(
+                Placeholder.parsed("prefix", msgConfig.prefix),
+                Placeholder.parsed("channel", channel.name),
+                Placeholder.parsed("channel_id", channelId));
+
         if (hidden) {
-            player.sendMessage(MINI_MESSAGE.deserialize(
-                    "<prefix> <gray>Hidden channel <yellow>" + channel.name
-                            + "</yellow>. You will no longer see messages from it.</gray>",
-                    Placeholder.parsed("prefix", msgConfig.prefix)));
+            player.sendMessage(MINI_MESSAGE.deserialize(msgConfig.channels.hideSuccess, placeholders));
         } else {
-            player.sendMessage(MINI_MESSAGE.deserialize(
-                    "<prefix> <gray>Unhidden channel <yellow>" + channel.name
-                            + "</yellow>. You will now see messages from it again.</gray>",
-                    Placeholder.parsed("prefix", msgConfig.prefix)));
+            player.sendMessage(MINI_MESSAGE.deserialize(msgConfig.channels.showSuccess, placeholders));
         }
     }
 
@@ -170,25 +170,33 @@ public class YapperCommand {
         ChannelTemplate channel = plugin.getConfigManager().getChannel(targetId);
         if (channel == null) {
             sender.sendMessage(MINI_MESSAGE.deserialize(
-                    "<prefix> <red>Channel <yellow>" + targetId + "</yellow> does not exist.</red>",
-                    Placeholder.parsed("prefix", msgConfig.prefix)));
+                    msgConfig.channels.notFound,
+                    TagResolver.resolver(
+                            Placeholder.parsed("prefix", msgConfig.prefix),
+                            Placeholder.parsed("channel_id", targetId))));
             return;
         }
 
-        String radiusText = channel.radius > 0 ? channel.radius + " blocks" : "Global (Infinite)";
-        String visibilityStatus = "Visible";
+        String radiusText = channel.radius > 0
+                ? msgConfig.channels.radiusBlocks.replace("<radius>", String.valueOf(channel.radius))
+                : msgConfig.channels.radiusInfinite;
+
+        String visibilityStatus = msgConfig.channels.statusVisible;
         if (sender instanceof Player player
                 && plugin.getSessionManager().isChannelHidden(player.getUniqueId(), targetId)) {
-            visibilityStatus = "Hidden";
+            visibilityStatus = msgConfig.channels.statusHidden;
         }
 
-        sender.sendMessage(MINI_MESSAGE.deserialize(
-                "<prefix> <gray>Channel Info for <yellow>" + channel.name + "</yellow> <dark_gray>(" + targetId
-                        + ")</dark_gray>:</gray>",
-                Placeholder.parsed("prefix", msgConfig.prefix)));
-        sender.sendMessage(MINI_MESSAGE.deserialize("<gray> - Radius: <yellow>" + radiusText + "</yellow></gray>"));
-        sender.sendMessage(
-                MINI_MESSAGE.deserialize("<gray> - Status: <yellow>" + visibilityStatus + "</yellow></gray>"));
+        TagResolver basePlaceholders = TagResolver.resolver(
+                Placeholder.parsed("prefix", msgConfig.prefix),
+                Placeholder.parsed("channel", channel.name),
+                Placeholder.parsed("channel_id", targetId),
+                Placeholder.parsed("radius", radiusText),
+                Placeholder.parsed("status", visibilityStatus));
+
+        sender.sendMessage(MINI_MESSAGE.deserialize(msgConfig.channels.infoHeader, basePlaceholders));
+        sender.sendMessage(MINI_MESSAGE.deserialize(msgConfig.channels.infoRadius, basePlaceholders));
+        sender.sendMessage(MINI_MESSAGE.deserialize(msgConfig.channels.infoStatus, basePlaceholders));
     }
 
     @Command("yapper channel <channelId> [message]")
@@ -199,33 +207,42 @@ public class YapperCommand {
             @Argument("message") String[] messageArgs) {
 
         CommandSender sender = source.getSender();
+        MessageConfig msgConfig = plugin.getConfigManager().getMessageConfig();
+
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(MINI_MESSAGE.deserialize("<red>Only players can use chat channels.</red>"));
+            sender.sendMessage(MINI_MESSAGE.deserialize(
+                    msgConfig.commands.playerOnly, Placeholder.parsed("prefix", msgConfig.prefix)));
             return;
         }
 
-        MessageConfig msgConfig = plugin.getConfigManager().getMessageConfig();
         ChannelTemplate channel = plugin.getConfigManager().getChannel(channelId);
 
         if (channel == null) {
             player.sendMessage(MINI_MESSAGE.deserialize(
-                    "<prefix> <red>Channel <yellow>" + channelId + "</yellow> does not exist.</red>",
-                    Placeholder.parsed("prefix", msgConfig.prefix)));
+                    msgConfig.channels.notFound,
+                    TagResolver.resolver(
+                            Placeholder.parsed("prefix", msgConfig.prefix),
+                            Placeholder.parsed("channel_id", channelId))));
             return;
         }
 
         if (!player.hasPermission("yapper.channel." + channelId + ".send")) {
             player.sendMessage(MINI_MESSAGE.deserialize(
-                    "<prefix> <red>You do not have permission to speak in <yellow>" + channel.name + "</yellow>.</red>",
-                    Placeholder.parsed("prefix", msgConfig.prefix)));
+                    msgConfig.channels.noPermissionSend,
+                    TagResolver.resolver(
+                            Placeholder.parsed("prefix", msgConfig.prefix),
+                            Placeholder.parsed("channel", channel.name),
+                            Placeholder.parsed("channel_id", channelId))));
             return;
         }
 
         if (messageArgs == null || messageArgs.length == 0) {
             plugin.getSessionManager().setPlayerChannel(player, channelId);
-            player.sendMessage(MINI_MESSAGE.deserialize(
-                    "<prefix> <gray>Switched active channel to <yellow>" + channel.name + "</yellow>.</gray>",
-                    Placeholder.parsed("prefix", msgConfig.prefix)));
+            TagResolver placeholders = TagResolver.resolver(
+                    Placeholder.parsed("prefix", msgConfig.prefix),
+                    Placeholder.parsed("channel", channel.name),
+                    Placeholder.parsed("channel_id", channelId));
+            player.sendMessage(MINI_MESSAGE.deserialize(msgConfig.channels.switchChannel, placeholders));
             return;
         }
 
