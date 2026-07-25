@@ -19,6 +19,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.maboroshi.yapper.Yapper;
 import org.maboroshi.yapper.config.ConfigManager;
@@ -40,10 +41,16 @@ public class ChatListener implements Listener {
     }
 
     @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        plugin.getSessionManager().loadSession(event.getPlayer());
+        Log.debug("Loaded active session for UUID: " + event.getPlayer().getUniqueId());
+    }
+
+    @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         UUID playerUuid = event.getPlayer().getUniqueId();
         plugin.getSessionManager().clearSession(playerUuid);
-        Log.debug("Cleared active session maps for UUID: " + playerUuid);
+        Log.debug("Cleared active session for UUID: " + playerUuid);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -123,7 +130,8 @@ public class ChatListener implements Listener {
 
         event.viewers().removeIf(audience -> {
             if (!(audience instanceof Player viewer)) return false;
-            return !viewer.hasPermission("yapper.channel." + targetChannelId + ".view");
+            return !viewer.hasPermission("yapper.channel." + targetChannelId + ".view")
+                    || plugin.getSessionManager().isChannelHidden(viewer.getUniqueId(), targetChannelId);
         });
 
         if (targetChannelId.startsWith("towny-")) {

@@ -94,20 +94,20 @@ public class YapperCommand {
                         + "<click:run_command:'/yapper channel " + channelId
                         + "'><hover:show_text:'<gray>Click to switch to </gray><yellow>" + template.name
                         + "</yellow>'><green>[Switch]</green></hover></click> "
-                        + "<click:run_command:'/yapper channel mute " + channelId
-                        + "'><hover:show_text:'<gray>Click to toggle mute for </gray><yellow>" + template.name
-                        + "</yellow>'><red>[Mute/Unmute]</red></hover></click>";
+                        + "<click:run_command:'/yapper channel hide " + channelId
+                        + "'><hover:show_text:'<gray>Click to toggle visibility for </gray><yellow>" + template.name
+                        + "</yellow>'><red>[Hide/Show]</red></hover></click>";
                 sender.sendMessage(MINI_MESSAGE.deserialize(line));
             }
         }
     }
 
-    @Command("yapper channel mute <channelId>")
-    @Permission("yapper.command.channel.mute")
-    public void onChannelMute(CommandSourceStack source, @Argument("channelId") String channelId) {
+    @Command("yapper channel hide <channelId>")
+    @Permission("yapper.command.channel.hide")
+    public void onChannelHide(CommandSourceStack source, @Argument("channelId") String channelId) {
         CommandSender sender = source.getSender();
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(MINI_MESSAGE.deserialize("<red>Only players can mute chat channels.</red>"));
+            sender.sendMessage(MINI_MESSAGE.deserialize("<red>Only players can hide chat channels.</red>"));
             return;
         }
 
@@ -121,15 +121,15 @@ public class YapperCommand {
             return;
         }
 
-        boolean muted = plugin.getSessionManager().toggleChannelMute(player.getUniqueId(), channelId);
-        if (muted) {
+        boolean hidden = plugin.getSessionManager().toggleChannelHide(player, channelId);
+        if (hidden) {
             player.sendMessage(MINI_MESSAGE.deserialize(
-                    "<prefix> <gray>Muted channel <yellow>" + channel.name
+                    "<prefix> <gray>Hidden channel <yellow>" + channel.name
                             + "</yellow>. You will no longer see messages from it.</gray>",
                     Placeholder.parsed("prefix", msgConfig.prefix)));
         } else {
             player.sendMessage(MINI_MESSAGE.deserialize(
-                    "<prefix> <gray>Unmuted channel <yellow>" + channel.name
+                    "<prefix> <gray>Unhidden channel <yellow>" + channel.name
                             + "</yellow>. You will now see messages from it again.</gray>",
                     Placeholder.parsed("prefix", msgConfig.prefix)));
         }
@@ -159,10 +159,10 @@ public class YapperCommand {
         }
 
         String radiusText = channel.radius > 0 ? channel.radius + " blocks" : "Global (Infinite)";
-        String muteStatus = "Unmuted";
+        String visibilityStatus = "Visible";
         if (sender instanceof Player player
-                && plugin.getSessionManager().isChannelMuted(player.getUniqueId(), targetId)) {
-            muteStatus = "Muted";
+                && plugin.getSessionManager().isChannelHidden(player.getUniqueId(), targetId)) {
+            visibilityStatus = "Hidden";
         }
 
         sender.sendMessage(MINI_MESSAGE.deserialize(
@@ -170,7 +170,8 @@ public class YapperCommand {
                         + ")</dark_gray>:</gray>",
                 Placeholder.parsed("prefix", msgConfig.prefix)));
         sender.sendMessage(MINI_MESSAGE.deserialize("<gray> - Radius: <yellow>" + radiusText + "</yellow></gray>"));
-        sender.sendMessage(MINI_MESSAGE.deserialize("<gray> - Status: <yellow>" + muteStatus + "</yellow></gray>"));
+        sender.sendMessage(
+                MINI_MESSAGE.deserialize("<gray> - Status: <yellow>" + visibilityStatus + "</yellow></gray>"));
     }
 
     @Command("yapper channel <channelId> [message]")
@@ -204,7 +205,7 @@ public class YapperCommand {
         }
 
         if (messageArgs == null || messageArgs.length == 0) {
-            plugin.getSessionManager().updateLastUsedChannel(player.getUniqueId(), channelId);
+            plugin.getSessionManager().setPlayerChannel(player, channelId);
             player.sendMessage(MINI_MESSAGE.deserialize(
                     "<prefix> <gray>Switched active channel to <yellow>" + channel.name + "</yellow>.</gray>",
                     Placeholder.parsed("prefix", msgConfig.prefix)));
@@ -269,7 +270,7 @@ public class YapperCommand {
 
         for (Player viewer : Bukkit.getOnlinePlayers()) {
             if (!viewer.hasPermission("yapper.channel." + channelId + ".view")) continue;
-            if (plugin.getSessionManager().isChannelMuted(viewer.getUniqueId(), channelId)) continue;
+            if (plugin.getSessionManager().isChannelHidden(viewer.getUniqueId(), channelId)) continue;
 
             if (channelId.startsWith("towny-") && !TownyHook.isVisibleTo(sender, viewer, channelId)) {
                 continue;

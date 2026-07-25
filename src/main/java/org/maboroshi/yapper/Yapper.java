@@ -9,7 +9,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.incendo.cloud.annotations.AnnotationParser;
 import org.incendo.cloud.execution.ExecutionCoordinator;
 import org.incendo.cloud.paper.PaperCommandManager;
-import org.incendo.cloud.setting.ManagerSetting;
 import org.maboroshi.yapper.command.YapperCommand;
 import org.maboroshi.yapper.config.ConfigManager;
 import org.maboroshi.yapper.hook.DiscordSRVHook;
@@ -17,6 +16,7 @@ import org.maboroshi.yapper.listener.ChatListener;
 import org.maboroshi.yapper.listener.InventoryListener;
 import org.maboroshi.yapper.manager.SessionManager;
 import org.maboroshi.yapper.util.FormatUtils;
+import org.maboroshi.yapper.util.Keys;
 import org.maboroshi.yapper.util.Log;
 
 public final class Yapper extends JavaPlugin {
@@ -31,6 +31,7 @@ public final class Yapper extends JavaPlugin {
     @Override
     public void onEnable() {
         plugin = this;
+        Keys.init(this);
         this.configManager = new ConfigManager(getDataFolder());
         this.formatUtils = new FormatUtils();
         this.sessionManager = new SessionManager();
@@ -51,8 +52,6 @@ public final class Yapper extends JavaPlugin {
         this.commandManager = PaperCommandManager.builder()
                 .executionCoordinator(ExecutionCoordinator.simpleCoordinator())
                 .buildOnEnable(this);
-
-        commandManager.settings().set(ManagerSetting.ALLOW_UNSAFE_REGISTRATION, true);
 
         AnnotationParser<CommandSourceStack> annotationParser =
                 new AnnotationParser<>(commandManager, CommandSourceStack.class);
