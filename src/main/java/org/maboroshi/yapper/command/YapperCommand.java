@@ -20,6 +20,8 @@ import org.bukkit.entity.Player;
 import org.incendo.cloud.annotations.Argument;
 import org.incendo.cloud.annotations.Command;
 import org.incendo.cloud.annotations.Permission;
+import org.incendo.cloud.annotations.suggestion.Suggestions;
+import org.incendo.cloud.context.CommandContext;
 import org.maboroshi.yapper.Yapper;
 import org.maboroshi.yapper.config.settings.ChannelTemplate;
 import org.maboroshi.yapper.config.settings.MessageConfig;
@@ -33,6 +35,22 @@ public class YapperCommand {
 
     public YapperCommand(Yapper plugin) {
         this.plugin = plugin;
+    }
+
+    @Suggestions("channels")
+    public List<String> channelSuggestions(CommandContext<CommandSourceStack> context, String input) {
+        CommandSender sender = context.sender().getSender();
+        List<String> suggestions = new ArrayList<>();
+
+        for (Map.Entry<String, ChannelTemplate> entry :
+                plugin.getConfigManager().getChannels().entrySet()) {
+            String channelId = entry.getKey();
+            if (sender.hasPermission("yapper.channel." + channelId + ".view")) {
+                suggestions.add(channelId);
+            }
+        }
+
+        return suggestions;
     }
 
     @Command("yapper")
@@ -104,7 +122,8 @@ public class YapperCommand {
 
     @Command("yapper channel hide <channelId>")
     @Permission("yapper.command.channel.hide")
-    public void onChannelHide(CommandSourceStack source, @Argument("channelId") String channelId) {
+    public void onChannelHide(
+            CommandSourceStack source, @Argument(value = "channelId", suggestions = "channels") String channelId) {
         CommandSender sender = source.getSender();
         if (!(sender instanceof Player player)) {
             sender.sendMessage(MINI_MESSAGE.deserialize("<red>Only players can hide chat channels.</red>"));
@@ -137,7 +156,8 @@ public class YapperCommand {
 
     @Command("yapper channel info [channelId]")
     @Permission("yapper.command.channel.info")
-    public void onChannelInfo(CommandSourceStack source, @Argument("channelId") String channelId) {
+    public void onChannelInfo(
+            CommandSourceStack source, @Argument(value = "channelId", suggestions = "channels") String channelId) {
         CommandSender sender = source.getSender();
         MessageConfig msgConfig = plugin.getConfigManager().getMessageConfig();
 
@@ -178,7 +198,7 @@ public class YapperCommand {
     @Permission("yapper.command.channel.use")
     public void onChannelAction(
             CommandSourceStack source,
-            @Argument("channelId") String channelId,
+            @Argument(value = "channelId", suggestions = "channels") String channelId,
             @Argument("message") String[] messageArgs) {
 
         CommandSender sender = source.getSender();
