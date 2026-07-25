@@ -140,6 +140,13 @@ public class YapperCommand {
             return;
         }
 
+        if (!player.hasPermission("yapper.channel." + channelId + ".view")) {
+            player.sendMessage(MINI_MESSAGE.deserialize(
+                    "<prefix> <red>You do not have permission to view <yellow>" + channel.name + "</yellow>.</red>",
+                    Placeholder.parsed("prefix", msgConfig.prefix)));
+            return;
+        }
+
         boolean hidden = plugin.getSessionManager().toggleChannelHide(player, channelId);
         if (hidden) {
             player.sendMessage(MINI_MESSAGE.deserialize(

@@ -72,6 +72,7 @@ public final class Yapper extends JavaPlugin {
         configManager.loadConfig();
         configManager.loadMessages();
         for (Player player : Bukkit.getOnlinePlayers()) {
+            sessionManager.loadSession(player);
             player.updateCommands();
         }
         return true;
