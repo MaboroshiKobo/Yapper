@@ -16,7 +16,7 @@ public class MessageConfig {
     }
 
     @Comment("The system-wide prefix variable. You can use <prefix> inside any other response below.")
-    public String prefix = "<color:#ea76cb><bold>Yapper</bold> ➟</color>";
+    public String prefix = "<color:#ad37fd><bold>Yapper</bold> ➟</color>";
 
     @Comment("Core plugin command executions and administrative feedback responses.")
     public CommandMessages commands = new CommandMessages();
@@ -36,30 +36,34 @@ public class MessageConfig {
         public String about =
                 "<prefix> Running version <yellow><version></yellow> developed by <gold><authors></gold>.";
 
-        @Comment("Message broadcasted to an administrator following a successful configurations refresh.")
-        public String reloadSuccess = "<prefix> Plugin configuration reloaded successfully.";
+        @Comment("Message broadcasted to an administrator following a successful configuration refresh.")
+        public String reloadSuccess = "<prefix> <green>Plugin configuration reloaded successfully.</green>";
 
-        @Comment("Feedback sent to an operator when an internal parsing exception blocks a files reload.")
-        public String reloadFail = "<prefix> Failed to reload configuration: <red><error></red>";
+        @Comment("Feedback sent to an operator when an internal parsing exception blocks a configuration reload.")
+        public String reloadFail = "<prefix> <red>Failed to reload configuration:</red> <gray><error></gray>";
     }
 
     @Configuration
     public static class HelpMessages {
         @Comment("The structural header text for the central assistance layout directory.")
-        public String header = "<prefix> Help Menu";
+        public String header = "<prefix> <gray>Command Help:</gray>";
 
-        @Comment("Description for the standard plugin metrics syntax information command.")
-        public String about = "<prefix> /yapper about <gray>- Shows plugin about information</gray>";
+        @Comment("Description for the standard plugin version information command.")
+        public String about = "<prefix> /yapper about <gray>- Shows plugin info and version</gray>";
 
         @Comment("Description for displaying the operational commands list directory.")
         public String help = "<prefix> /yapper help <gray>- Shows this help menu</gray>";
 
-        @Comment("Description for the system files verification refresh execution path.")
-        public String reload = "<prefix> /yapper reload <gray>- Reloads plugin config</gray>";
+        @Comment("Description for the system configuration refresh command.")
+        public String reload = "<prefix> /yapper reload <gray>- Reloads plugin configuration</gray>";
     }
 
     @Configuration
     public static class ChannelMessages {
+        @Comment("The notification sent directly to a player showing their current focused channel.")
+        public String currentChannel =
+                "<prefix> You are currently speaking in <yellow><channel></yellow> <dark_gray>(<channel_id>)</dark_gray>.";
+
         @Comment("The notification sent directly to a player when they alter their focus channel room target.")
         public String switchChannel = "<prefix> Switched active channel to <yellow><channel></yellow>.";
 
@@ -76,11 +80,11 @@ public class MessageConfig {
 
         @Comment("Notification sent when a player hides a channel.")
         public String hideSuccess =
-                "<prefix> <gray>Hidden channel <yellow><channel></yellow>. You will no longer see messages from it.</gray>";
+                "<prefix> <gray>Channel <yellow><channel></yellow> hidden. You will no longer see messages from it.</gray>";
 
         @Comment("Notification sent when a player unhides a channel.")
         public String showSuccess =
-                "<prefix> <gray>Unhidden channel <yellow><channel></yellow>. You will now see messages from it again.</gray>";
+                "<prefix> <gray>Channel <yellow><channel></yellow> unhidden. You will now see messages from it again.</gray>";
 
         @Comment("Header for the channel list menu.")
         public String listHeader = "<prefix> <gray>Available Chat Channels:</gray>";
@@ -88,7 +92,8 @@ public class MessageConfig {
         @Comment("Format for each channel item entry in the channel list.")
         public String listItem = "<gray>- </gray><yellow><channel></yellow> <dark_gray>(<channel_id>)</dark_gray> "
                 + "<click:run_command:'/yapper channel <channel_id>'><hover:show_text:'<gray>Click to switch to </gray><yellow><channel></yellow>'><green>[Switch]</green></hover></click> "
-                + "<click:run_command:'/yapper channel hide <channel_id>'><hover:show_text:'<gray>Click to toggle visibility for </gray><yellow><channel></yellow>'><red>[Hide/Show]</red></hover></click>";
+                + "<click:run_command:'/yapper channel hide <channel_id>'><hover:show_text:'<gray>Click to hide </gray><yellow><channel></yellow>'><red>[Hide]</red></hover></click> "
+                + "<click:run_command:'/yapper channel show <channel_id>'><hover:show_text:'<gray>Click to show </gray><yellow><channel></yellow>'><yellow>[Show]</yellow></hover></click>";
 
         @Comment("Header for the channel information command.")
         public String infoHeader =

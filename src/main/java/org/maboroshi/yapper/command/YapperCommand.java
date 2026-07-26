@@ -80,7 +80,37 @@ public class YapperCommand {
         }
     }
 
-    @Command("yapper channel [list]")
+    @Command("yapper channel")
+    @Permission("yapper.command.channel")
+    public void onCurrentChannel(CommandSourceStack source) {
+        CommandSender sender = source.getSender();
+        MessageConfig msgConfig = plugin.getConfigManager().getMessageConfig();
+
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(MINI_MESSAGE.deserialize(
+                    msgConfig.commands.playerOnly, Placeholder.parsed("prefix", msgConfig.prefix)));
+            return;
+        }
+
+        String currentChannelId = plugin.getSessionManager().getCurrentMessageChannel(player);
+        ChannelTemplate channel = plugin.getConfigManager().getChannel(currentChannelId);
+
+        if (channel == null) {
+            currentChannelId = "global";
+            channel = plugin.getConfigManager().getChannel("global");
+        }
+
+        String channelName = channel != null ? channel.name : "Global";
+
+        TagResolver placeholders = TagResolver.resolver(
+                Placeholder.parsed("prefix", msgConfig.prefix),
+                Placeholder.parsed("channel", channelName),
+                Placeholder.parsed("channel_id", currentChannelId));
+
+        player.sendMessage(MINI_MESSAGE.deserialize(msgConfig.channels.currentChannel, placeholders));
+    }
+
+    @Command("yapper channel list")
     @Permission("yapper.command.channel.list")
     public void onChannelList(CommandSourceStack source) {
         CommandSender sender = source.getSender();
@@ -138,17 +168,62 @@ public class YapperCommand {
             return;
         }
 
-        boolean hidden = plugin.getSessionManager().toggleChannelHide(player, channelId);
+        if (!plugin.getSessionManager().isChannelHidden(player.getUniqueId(), channelId)) {
+            plugin.getSessionManager().toggleChannelHide(player, channelId);
+        }
+
         TagResolver placeholders = TagResolver.resolver(
                 Placeholder.parsed("prefix", msgConfig.prefix),
                 Placeholder.parsed("channel", channel.name),
                 Placeholder.parsed("channel_id", channelId));
 
-        if (hidden) {
-            player.sendMessage(MINI_MESSAGE.deserialize(msgConfig.channels.hideSuccess, placeholders));
-        } else {
-            player.sendMessage(MINI_MESSAGE.deserialize(msgConfig.channels.showSuccess, placeholders));
+        player.sendMessage(MINI_MESSAGE.deserialize(msgConfig.channels.hideSuccess, placeholders));
+    }
+
+    @Command("yapper channel show <channelId>")
+    @Permission("yapper.command.channel.show")
+    public void onChannelShow(
+            CommandSourceStack source, @Argument(value = "channelId", suggestions = "channels") String channelId) {
+        CommandSender sender = source.getSender();
+        MessageConfig msgConfig = plugin.getConfigManager().getMessageConfig();
+
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(MINI_MESSAGE.deserialize(
+                    msgConfig.commands.playerOnly, Placeholder.parsed("prefix", msgConfig.prefix)));
+            return;
         }
+
+        ChannelTemplate channel = plugin.getConfigManager().getChannel(channelId);
+
+        if (channel == null) {
+            player.sendMessage(MINI_MESSAGE.deserialize(
+                    msgConfig.channels.notFound,
+                    TagResolver.resolver(
+                            Placeholder.parsed("prefix", msgConfig.prefix),
+                            Placeholder.parsed("channel_id", channelId))));
+            return;
+        }
+
+        if (!player.hasPermission("yapper.channel." + channelId + ".view")) {
+            player.sendMessage(MINI_MESSAGE.deserialize(
+                    msgConfig.channels.noPermissionView,
+                    TagResolver.resolver(
+                            Placeholder.parsed("prefix", msgConfig.prefix),
+                            Placeholder.parsed("channel", channel.name),
+                            Placeholder.parsed("channel_id", channelId))));
+            return;
+        }
+
+        if (plugin.getSessionManager().isChannelHidden(player.getUniqueId(), channelId)) {
+            plugin.getSessionManager().toggleChannelHide(player, channelId);
+        }
+
+        TagResolver placeholders = TagResolver.resolver(
+                Placeholder.parsed("prefix", msgConfig.prefix),
+                Placeholder.parsed("channel", channel.name),
+                Placeholder.parsed("channel_id", channelId));
+
+        player.sendMessage(MINI_MESSAGE.deserialize(msgConfig.channels.showSuccess, placeholders));
     }
 
     @Command("yapper channel info [channelId]")
