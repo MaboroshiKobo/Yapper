@@ -34,7 +34,7 @@ public class MessageConfig {
 
         @Comment("Message display for the about plugin command.")
         public String about =
-                "<prefix> Running version <yellow><version></yellow> developed by <gold><authors></gold>.";
+                "<prefix> Running version <light_purple><version></light_purple> developed by <light_purple><authors></light_purple>.";
 
         @Comment("Message broadcasted to an administrator following a successful configuration refresh.")
         public String reloadSuccess = "<prefix> <green>Plugin configuration reloaded successfully.</green>";
@@ -46,7 +46,7 @@ public class MessageConfig {
     @Configuration
     public static class HelpMessages {
         @Comment("The structural header text for the central assistance layout directory.")
-        public String header = "<prefix> <gray>Command Help:</gray>";
+        public String header = "<prefix> <gray>Command Help</gray>";
 
         @Comment("Description for the standard plugin version information command.")
         public String about = "<prefix> /yapper about <gray>- Shows plugin info and version</gray>";
@@ -62,48 +62,48 @@ public class MessageConfig {
     public static class ChannelMessages {
         @Comment("The notification sent directly to a player showing their current focused channel.")
         public String currentChannel =
-                "<prefix> You are currently speaking in <yellow><channel></yellow> <dark_gray>(<channel_id>)</dark_gray>.";
+                "<prefix> You are currently in <light_purple><channel></light_purple> <dark_gray>(<channel_id>)</dark_gray>.";
 
         @Comment("The notification sent directly to a player when they alter their focus channel room target.")
-        public String switchChannel = "<prefix> Switched active channel to <yellow><channel></yellow>.";
+        public String switchChannel = "<prefix> Switched active channel to <light_purple><channel></light_purple>.";
 
         @Comment("Message sent when a specified channel cannot be found.")
-        public String notFound = "<prefix> <red>Channel <yellow><channel_id></yellow> does not exist.</red>";
+        public String notFound = "<prefix> Channel <red><channel_id></red> does not exist.</red>";
 
         @Comment("Message sent when a player lacks permission to view a channel.")
         public String noPermissionView =
-                "<prefix> <red>You do not have permission to view <yellow><channel></yellow>.</red>";
+                "<prefix> <red>You do not have permission to view <light_purple><channel></light_purple>.</red>";
 
         @Comment("Message sent when a player lacks permission to speak in a channel.")
         public String noPermissionSend =
-                "<prefix> <red>You do not have permission to speak in <yellow><channel></yellow>.</red>";
+                "<prefix> You do not have permission to speak in <light_purple><channel></light_purple>.";
 
         @Comment("Notification sent when a player hides a channel.")
         public String hideSuccess =
-                "<prefix> <gray>Channel <yellow><channel></yellow> hidden. You will no longer see messages from it.</gray>";
+                "<prefix> Channel <light_purple><channel></light_purple> hidden. You will no longer see messages from it.";
 
         @Comment("Notification sent when a player unhides a channel.")
         public String showSuccess =
-                "<prefix> <gray>Channel <yellow><channel></yellow> unhidden. You will now see messages from it again.</gray>";
+                "<prefix> Channel <light_purple><channel></light_purple> unhidden. You will now see messages from it again.";
 
         @Comment("Header for the channel list menu.")
-        public String listHeader = "<prefix> <gray>Available Chat Channels:</gray>";
+        public String listHeader = "<prefix> Available chat channels:";
 
         @Comment("Format for each channel item entry in the channel list.")
-        public String listItem = "<gray>- </gray><yellow><channel></yellow> <dark_gray>(<channel_id>)</dark_gray> "
-                + "<click:run_command:'/yapper channel <channel_id>'><hover:show_text:'<gray>Click to switch to </gray><yellow><channel></yellow>'><green>[Switch]</green></hover></click> "
-                + "<click:run_command:'/yapper channel hide <channel_id>'><hover:show_text:'<gray>Click to hide </gray><yellow><channel></yellow>'><red>[Hide]</red></hover></click> "
-                + "<click:run_command:'/yapper channel show <channel_id>'><hover:show_text:'<gray>Click to show </gray><yellow><channel></yellow>'><yellow>[Show]</yellow></hover></click>";
+        public String listItem = "<gray>- </gray><light_purple><channel></light_purple> <gray>(<channel_id>)</gray> "
+                + "<click:run_command:'/yapper channel <channel_id>'><hover:show_text:'Click to switch to <light_purple><channel></light_purple>'><yellow>[Switch]</yellow></hover></click> "
+                + "<click:run_command:'/yapper channel hide <channel_id>'><hover:show_text:'Click to hide <light_purple><channel></light_purple>'><red>[Hide]</red></hover></click> "
+                + "<click:run_command:'/yapper channel show <channel_id>'><hover:show_text:'Click to show <light_purple><channel></light_purple>'><green>[Show]</green></hover></click>";
 
         @Comment("Header for the channel information command.")
         public String infoHeader =
-                "<prefix> <gray>Channel Info for <yellow><channel></yellow> <dark_gray>(<channel_id>)</dark_gray>:</gray>";
+                "<prefix> Channel information for <light_purple><channel></light_purple> <gray>(<channel_id>)</gray>:";
 
         @Comment("Radius label in channel info.")
-        public String infoRadius = "<gray> - Radius: <yellow><radius></yellow></gray>";
+        public String infoRadius = " - Radius: <light_purple><radius></light_purple>";
 
         @Comment("Status label in channel info.")
-        public String infoStatus = "<gray> - Status: <yellow><status></yellow></gray>";
+        public String infoStatus = " - Status: <light_purple><status></light_purple>";
 
         @Comment("Text representation for infinite/global radius.")
         public String radiusInfinite = "Global (Infinite)";
