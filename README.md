@@ -20,23 +20,24 @@
   </p>
 </div>
 
-## Feature-rich chat channels and interactive inline macros
+## Custom chat channels, interactive inline macros, and proximity chat
 
-Yapper is a modern chat management plugin designed to bring flexible channel controls and rich interactivity to server communication. It gives administrators full control over global and proximity-based chat channels, dynamic permission-based formats, and customizable inline macros for players.
+Yapper is a lightweight chat management plugin that lets players switch target channels, share items, and open inline inventory previews directly from chat. It gives administrators full control over local proximity ranges, permission-based MiniMessage layouts, and custom macros to build a clean, modern chat experience on a server.
 
 ## Features
 
-* Create custom chat channels with configurable local block radius or global ranges.
-* Design dynamic permission-based chat formats using MiniMessage syntax and reusable tags.
-* Set up inline macros for items, inventories, ender chests, and any other stats (via PlaceholderAPI) with interactive hover previews.
-* Give players full channel control to easily switch active rooms, view channel info, or hide unwanted channels.
+* Create global chat channels or local proximity channels with configurable block radii.
+* Design dynamic, permission-based chat formats using MiniMessage syntax, custom tags, and PlaceholderAPI.
+* Set up interactive inline macros that let players share held items, shulker boxes, ender chests, and inventories with clickable GUI previews.
+* Connect directly with Towny to support dedicated town, nation, and alliance channels out of the box.
+* Allow players to switch active channels, send quick one-off messages, or hide channels they do not want to see.
 
 ## Prerequisites
 
 Yapper is compatible with the following plugins:
 
 * [Towny](https://townyadvanced.github.io) (Optional for town integration)
-* [DiscordSRV](https://www.discordsrv.com) (Optional for Discord integration)
+* [DiscordSRV](https://www.discordsrv.com) (Optional for basic Discord integration)
 * [PlaceholderAPI](https://placeholderapi.com) (Optional)
 * [PluginUpdater](https://modrinth.com/plugin/plugin-updater) (Optional for update checking and automatic updates)
 
