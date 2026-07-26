@@ -19,7 +19,7 @@ def getGitHash = { ->
         }
         return stdout.toString().trim()
     } catch (Exception ignored) {
-        return "beta"
+        return "alpha"
     }
 }
 
@@ -94,7 +94,7 @@ spotless {
         removeUnusedImports()
         forbidWildcardImports()
         cleanthat()
-        palantirJavaFormat('2.94.0')
+        palantirJavaFormat('2.96.0')
         formatAnnotations()
     }
 }
