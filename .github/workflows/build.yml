@@ -109,7 +109,7 @@ jobs:
           DESCRIPTION: ${{ steps.desc.outputs.text }}
           GAME_VERSIONS: 26.1 26.1.1 26.1.2 26.2
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
-          MODRINTH_PROJECT: yapper
+          MODRINTH_PROJECT: zL0K7wRS
           MODRINTH_LOADERS: paper purpur folia
           MODRINTH_VERSION_TYPE: ${{ github.event_name == 'release' && 'release' || 'alpha' }}
           HANGAR_KEY: ${{ secrets.HANGAR_KEY }}
