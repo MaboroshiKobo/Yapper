@@ -1,8 +1,7 @@
-<div align="center">
-  <img src="https://raw.githubusercontent.com/MaboroshiKobo/branding/refs/heads/main/projects/yapper/yapper.avif" width="180" alt="Yapper Logo" />
-  <h1>Yapper</h1>
-  <p>A chat plugin.</p>
+[![Yapper Banner](https://raw.githubusercontent.com/MaboroshiKobo/branding/refs/heads/main/projects/yapper/banners/yapper_2048.png)](https://docs.maboroshi.org/projects/yapper)
 
+
+<div align="center">
   <p>
     <img alt="paper" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/supported/paper_vector.svg">
     <img alt="purpur" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/supported/purpur_vector.svg">
@@ -16,22 +15,34 @@
   </p>
 
   <p>
-    <a href="https://docs.maboroshi.org"><img alt="generic" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/documentation/generic_vector.svg"></a>
-    <a href="https://discord.maboroshi.org"><img alt="discord-singular" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/social/discord-singular_vector.svg"></a>
+    <a href="https://docs.maboroshi.org/projects/yapper"><img alt="generic" height="56" src="https://raw.githubusercontent.com/MaboroshiKobo/branding/refs/heads/main/socials/128x/domain_icon_bg.png"></a>
+    <a href="https://discord.maboroshi.org"><img alt="discord-singular" height="56" src="https://raw.githubusercontent.com/MaboroshiKobo/branding/refs/heads/main/socials/128x/discord_icon_bg.png"></a>
   </p>
 </div>
 
-### Features
+## Feature-rich chat channels and interactive inline macros
 
-To be added.
+Yapper is a modern chat management plugin designed to bring flexible channel controls and rich interactivity to server communication. It gives administrators full control over global and proximity-based chat channels, dynamic permission-based formats, and customizable inline macros for players.
 
-### Prerequisites
+## Features
 
-To use this plugin, your server must be running **Paper** on `26.1` or higher, and Java 25 or higher.
+* Create custom chat channels with configurable local block radius or global ranges.
+* Design dynamic permission-based chat formats using MiniMessage syntax and reusable tags.
+* Set up inline macros for items, inventories, ender chests, and any other stats (via PlaceholderAPI) with interactive hover previews.
+* Give players full channel control to easily switch active rooms, view channel info, or hide unwanted channels.
 
-### Documentation & Support
+## Prerequisites
 
-For a complete guide on features, commands, and configuration, please visit our [wiki](https://docs.maboroshi.org). If you have questions or need to report a bug, join our [Discord server](https://discord.maboroshi.org).
+Yapper is compatible with the following plugins:
+
+* [Towny](https://townyadvanced.github.io) (Optional for town integration)
+* [DiscordSRV](https://www.discordsrv.com) (Optional for Discord integration)
+* [PlaceholderAPI](https://placeholderapi.com) (Optional)
+* [PluginUpdater](https://modrinth.com/plugin/plugin-updater) (Optional for update checking and automatic updates)
+
+## Documentation & Support
+
+For configurations, commands, and permissions, check out our [wiki](https://docs.maboroshi.org/projects/yapper). For bugs, questions, or updates, visit our [Discord server](https://discord.maboroshi.org) or open a [GitHub Issue](https://github.com/MaboroshiKobo/Yapper/issues).
 
 ### Statistics
 
@@ -41,7 +52,7 @@ This plugin utilizes [bStats](https://bstats.org/plugin/bukkit/Yapper/32126) to 
 
 ## Building
 
-If you wish to build the project from source, ensure you have a Java 25 environment configured.
+To build the project from source, ensure you have a Java 25 environment configured.
 
 ```bash
 ./gradlew build
