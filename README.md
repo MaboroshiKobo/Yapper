@@ -1,6 +1,5 @@
 [![Yapper Banner](https://raw.githubusercontent.com/MaboroshiKobo/branding/refs/heads/main/projects/yapper/banners/yapper_2048.png)](https://docs.maboroshi.org/projects/yapper)
 
-
 <div align="center">
   <p>
     <img alt="paper" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/supported/paper_vector.svg">
@@ -15,8 +14,8 @@
   </p>
 
   <p>
-    <a href="https://docs.maboroshi.org/projects/yapper"><img alt="generic" height="56" src="https://raw.githubusercontent.com/MaboroshiKobo/branding/refs/heads/main/socials/128x/domain_icon_bg.png"></a>
-    <a href="https://discord.maboroshi.org"><img alt="discord-singular" height="56" src="https://raw.githubusercontent.com/MaboroshiKobo/branding/refs/heads/main/socials/128x/discord_icon_bg.png"></a>
+    <a href="https://docs.maboroshi.org/projects/yapper"><img alt="documentation" height="56" src="https://raw.githubusercontent.com/MaboroshiKobo/branding/refs/heads/main/socials/128x/domain_icon_bg.png"></a>
+    <a href="https://discord.maboroshi.org"><img alt="discord" height="56" src="https://raw.githubusercontent.com/MaboroshiKobo/branding/refs/heads/main/socials/128x/discord_icon_bg.png"></a>
   </p>
 </div>
 
@@ -28,9 +27,9 @@ Yapper is a lightweight chat management plugin that lets players switch target c
 
 * Create global chat channels or local proximity channels with configurable block radii.
 * Design dynamic, permission-based chat formats using MiniMessage syntax, custom tags, and PlaceholderAPI.
-* Set up interactive inline macros that let players share held items, shulker boxes, ender chests, and inventories with clickable GUI previews.
+* Set up interactive inline macros that let players share held items, inventories, ender chests, or any custom PlaceholderAPI stat with hover previews.
 * Connect directly with Towny to support dedicated town, nation, and alliance channels out of the box.
-* Allow players to switch active channels, send quick one-off messages, or hide channels they do not want to see.
+* Allow players to switch active channels, send quick one-off messages, or toggle channel visibility with hide and show commands.
 
 ## Prerequisites
 
