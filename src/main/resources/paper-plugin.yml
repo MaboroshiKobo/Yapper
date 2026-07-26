@@ -1,12 +1,15 @@
 name: Yapper
-version: "${version}"
+version: ${version}
 main: org.maboroshi.yapper.Yapper
 loader: org.maboroshi.yapper.Loader
-description: A chat plugin.
+description: Customizable channels, proximity ranges, and interactive macros. Format messages with MiniMessage and share items or inventories directly in chat.
 author: Maboroshi
 website: https://github.com/MaboroshiKobo/Yapper
-api-version: "26.2"
+api-version: 26.1
 folia-supported: true
+modrinth-project-id: yapper
+hangar-project-slug: yapper
+github-repo: MaboroshiKobo/Yapper
 dependencies:
   server:
     PlaceholderAPI:
