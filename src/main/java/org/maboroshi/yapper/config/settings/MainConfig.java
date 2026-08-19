@@ -31,7 +31,9 @@ public class MainConfig {
         "Custom tags that can be reused across any of your channel format layouts.",
         "For example, defining 'prefix' here allows you to use <prefix> in your formats."
     })
-    public Map<String, String> customTags = new LinkedHashMap<>(Map.of("prefix", "%luckperms_prefix%"));
+    public Map<String, String> customTags = new LinkedHashMap<>(Map.of(
+            "prefix", "<papi:luckperms_prefix>",
+            "separator", "<dark_gray>➡</dark_gray>"));
 
     @Comment({
         "Chat macros that players with permission can type inline within their messages.",
@@ -52,17 +54,17 @@ public class MainConfig {
                     "inventory|inv",
                             new MacroSetting(
                                     MacroAction.INVENTORY,
-                                    "<hover:show_text:\"<gray>Click to view <papi:player_name>'s inventory.</gray>\"><dark_gray>[</dark_gray><papi:player_name>'s Inventory<dark_gray>]</dark_gray></hover>",
+                                    "<hover:show_text:\"<gray>Click to view <username>'s inventory.</gray>\"><dark_gray>[</dark_gray><username>'s Inventory<dark_gray>]</dark_gray></hover>",
                                     5),
                     "enderchest|ec",
                             new MacroSetting(
                                     MacroAction.ENDERCHEST,
-                                    "<hover:show_text:\"<gray>Click to view <papi:player_name>'s enderchest.</gray>\"><dark_gray>[</dark_gray><papi:player_name>'s Ender Chest<dark_gray>]</dark_gray></hover>",
+                                    "<hover:show_text:\"<gray>Click to view <username>'s enderchest.</gray>\"><dark_gray>[</dark_gray><username>'s Ender Chest<dark_gray>]</dark_gray></hover>",
                                     5),
                     "money|balance|bal",
                             new MacroSetting(
                                     MacroAction.TEXT,
-                                    "<hover:show_text:'<gray>Click to send money to this player.</gray>'><click:suggest_command:'/pay <papi:player_name> '><dark_gray>[</dark_gray><papi:vault_eco_balance_fixed><dark_gray>]</dark_gray></click></hover>")));
+                                    "<hover:show_text:'<gray>Click to send money to this player.</gray>'><click:suggest_command:'/pay <username> '><dark_gray>[</dark_gray><papi:vault_eco_balance_fixed><dark_gray>]</dark_gray></click></hover>")));
 
     @Configuration
     public static class MacroSetting {

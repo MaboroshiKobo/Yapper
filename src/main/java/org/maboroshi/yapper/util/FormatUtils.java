@@ -7,9 +7,11 @@ import java.util.regex.Pattern;
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.Tag;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.minimessage.tag.standard.StandardTags;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 public class FormatUtils {
@@ -47,7 +49,34 @@ public class FormatUtils {
         return MiniMessage.builder().tags(TagResolver.resolver(allowedTags)).build();
     }
 
-    public String resolveEmbeddedPlaceholders(Player player, String text, boolean papiEnabled) {
+    public TagResolver createPapiResolver(OfflinePlayer player, boolean papiEnabled) {
+        if (!papiEnabled || player == null) {
+            return TagResolver.resolver("papi", (args, context) -> Tag.selfClosingInserting(Component.empty()));
+        }
+
+        return TagResolver.resolver("papi", (args, context) -> {
+            if (!args.hasNext()) return Tag.selfClosingInserting(Component.empty());
+            List<String> argList = new ArrayList<>();
+            while (args.hasNext()) {
+                argList.add(args.pop().value());
+            }
+            String papiQuery = String.join(":", argList);
+            String papiText = PlaceholderAPI.setPlaceholders(player, "%" + papiQuery + "%");
+            Component comp;
+            if (papiText.contains("§")) {
+                comp = LegacyComponentSerializer.legacySection().deserialize(papiText);
+            } else {
+                try {
+                    comp = MINI_MESSAGE.deserialize(papiText);
+                } catch (Exception e) {
+                    comp = Component.text(papiText);
+                }
+            }
+            return Tag.selfClosingInserting(comp);
+        });
+    }
+
+    public String resolveEmbeddedPlaceholders(OfflinePlayer player, String text, boolean papiEnabled) {
         if (text == null || !papiEnabled || !text.contains("<papi:")) {
             return text;
         }
@@ -57,7 +86,8 @@ public class FormatUtils {
 
         while (matcher.find()) {
             String placeholderQuery = matcher.group(1);
-            String papiText = PlaceholderAPI.setPlaceholders(player, "%" + placeholderQuery + "%");
+            String papiText =
+                    player != null ? PlaceholderAPI.setPlaceholders(player, "%" + placeholderQuery + "%") : "";
 
             String mmCompatibleText;
             if (papiText.contains("§")) {
