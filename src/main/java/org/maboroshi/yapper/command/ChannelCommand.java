@@ -4,7 +4,6 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
@@ -16,14 +15,14 @@ import org.incendo.cloud.annotations.Permission;
 import org.incendo.cloud.annotations.suggestion.Suggestions;
 import org.incendo.cloud.context.CommandContext;
 import org.maboroshi.yapper.Yapper;
-import org.maboroshi.yapper.config.settings.ChannelTemplate;
-import org.maboroshi.yapper.config.settings.MessageConfig;
+import org.maboroshi.yapper.config.ChannelTemplate;
+import org.maboroshi.yapper.config.MessageConfig;
 
-public class YapperCommand {
+public class ChannelCommand {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private final Yapper plugin;
 
-    public YapperCommand(Yapper plugin) {
+    public ChannelCommand(Yapper plugin) {
         this.plugin = plugin;
     }
 
@@ -43,73 +42,7 @@ public class YapperCommand {
         return suggestions;
     }
 
-    @Command("yapper")
-    @Permission("yapper.command")
-    public void onAbout(CommandSourceStack source) {
-        CommandSender commandSender = source.getSender();
-        MessageConfig messageConfig = plugin.getConfigManager().getMessageConfig();
-
-        String version = plugin.getPluginMeta().getVersion();
-        String authors = String.join(", ", plugin.getPluginMeta().getAuthors());
-
-        TagResolver aboutPlaceholders = TagResolver.resolver(
-                Placeholder.parsed("prefix", messageConfig.prefix),
-                Placeholder.parsed("version", version),
-                Placeholder.parsed("authors", authors));
-
-        commandSender.sendMessage(MINI_MESSAGE.deserialize(messageConfig.commands.about, aboutPlaceholders));
-    }
-
-    @Command("yapper reload")
-    @Permission("yapper.command.reload")
-    public void onReload(CommandSourceStack source) {
-        CommandSender commandSender = source.getSender();
-        MessageConfig messageConfig = plugin.getConfigManager().getMessageConfig();
-
-        if (plugin.reload()) {
-            TagResolver successPlaceholders = TagResolver.resolver(Placeholder.parsed("prefix", messageConfig.prefix));
-            Component successMessage =
-                    MINI_MESSAGE.deserialize(messageConfig.commands.reloadSuccess, successPlaceholders);
-            commandSender.sendMessage(successMessage);
-        } else {
-            TagResolver failurePlaceholders = TagResolver.resolver(
-                    Placeholder.parsed("prefix", messageConfig.prefix),
-                    Placeholder.parsed("error", "Check console for structural validation errors."));
-            Component failureMessage = MINI_MESSAGE.deserialize(messageConfig.commands.reloadFail, failurePlaceholders);
-            commandSender.sendMessage(failureMessage);
-        }
-    }
-
-    @Command("yapper channel")
-    @Permission("yapper.command.channel")
-    public void onCurrentChannel(CommandSourceStack source) {
-        CommandSender sender = source.getSender();
-        MessageConfig msgConfig = plugin.getConfigManager().getMessageConfig();
-
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(MINI_MESSAGE.deserialize(
-                    msgConfig.commands.playerOnly, Placeholder.parsed("prefix", msgConfig.prefix)));
-            return;
-        }
-
-        String currentChannelId = plugin.getSessionManager().getCurrentMessageChannel(player);
-        ChannelTemplate channel = plugin.getConfigManager().getChannel(currentChannelId);
-
-        if (channel == null) {
-            currentChannelId = "global";
-            channel = plugin.getConfigManager().getChannel("global");
-        }
-
-        String channelName = channel != null ? channel.name : "Global";
-
-        TagResolver placeholders = TagResolver.resolver(
-                Placeholder.parsed("prefix", msgConfig.prefix),
-                Placeholder.parsed("channel", channelName),
-                Placeholder.parsed("channel_id", currentChannelId));
-
-        player.sendMessage(MINI_MESSAGE.deserialize(msgConfig.channels.currentChannel, placeholders));
-    }
-
+    @Command("yapper channels")
     @Command("yapper channel list")
     @Permission("yapper.command.channel.list")
     public void onChannelList(CommandSourceStack source) {

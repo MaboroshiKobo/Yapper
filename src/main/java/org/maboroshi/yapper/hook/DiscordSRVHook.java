@@ -4,11 +4,15 @@ import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.api.Subscribe;
 import github.scarsz.discordsrv.api.events.DiscordGuildMessagePreProcessEvent;
 import github.scarsz.discordsrv.api.events.GameChatMessagePreProcessEvent;
+import github.scarsz.discordsrv.dependencies.jda.api.entities.Member;
 import github.scarsz.discordsrv.dependencies.jda.api.entities.Message;
+import github.scarsz.discordsrv.dependencies.jda.api.entities.Role;
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -18,7 +22,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.maboroshi.yapper.Yapper;
-import org.maboroshi.yapper.config.settings.ChannelTemplate;
+import org.maboroshi.yapper.config.ChannelTemplate;
 import org.maboroshi.yapper.util.Log;
 
 public class DiscordSRVHook {
@@ -67,21 +71,20 @@ public class DiscordSRVHook {
 
         Message referencedMessage = event.getMessage().getReferencedMessage();
         String replyToName = null;
+        String replyToContent = "";
 
         if (referencedMessage != null) {
             replyToName = referencedMessage.getMember() != null
                     ? referencedMessage.getMember().getEffectiveName()
                     : referencedMessage.getAuthor().getName();
+            replyToContent = referencedMessage.getContentDisplay();
         }
 
-        String rawFormatTemplate;
-        if (replyToName != null
-                && channelTemplate.discordReplyFormat != null
-                && !channelTemplate.discordReplyFormat.isBlank()) {
-            rawFormatTemplate = channelTemplate.discordReplyFormat;
-        } else {
-            rawFormatTemplate = channelTemplate.discordFormat;
-        }
+        String rawFormatTemplate = (replyToName != null
+                        && channelTemplate.discordReplyFormat != null
+                        && !channelTemplate.discordReplyFormat.isBlank())
+                ? channelTemplate.discordReplyFormat
+                : channelTemplate.discordFormat;
 
         if (rawFormatTemplate == null || rawFormatTemplate.isBlank()) {
             return;
@@ -89,11 +92,32 @@ public class DiscordSRVHook {
 
         event.setCancelled(true);
 
-        String discordUsername = event.getMember() != null
-                ? event.getMember().getEffectiveName()
-                : event.getAuthor().getName();
-
+        Member member = event.getMember();
+        String discordEffectiveName =
+                member != null ? member.getEffectiveName() : event.getAuthor().getName();
+        String discordUsername = event.getAuthor().getName();
+        String discordUserId = event.getAuthor().getId();
+        String discordChannelName = event.getChannel().getName();
+        String discordGuildName = event.getGuild() != null ? event.getGuild().getName() : "";
         String rawContent = event.getMessage().getContentDisplay();
+
+        String topRoleName = "";
+        String topRoleColor = "#ffffff";
+        String allRoles = "";
+
+        if (member != null && !member.getRoles().isEmpty()) {
+            List<Role> roles = member.getRoles();
+            topRoleName = roles.get(0).getName();
+            allRoles = roles.stream().map(Role::getName).collect(Collectors.joining(", "));
+
+            for (Role role : roles) {
+                Color color = role.getColor();
+                if (color != null) {
+                    topRoleColor = String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue());
+                    break;
+                }
+            }
+        }
 
         UUID linkedUuid = DiscordSRV.getPlugin().getAccountLinkManager() != null
                 ? DiscordSRV.getPlugin()
@@ -102,17 +126,15 @@ public class DiscordSRVHook {
                 : null;
         OfflinePlayer linkedPlayer = linkedUuid != null ? Bukkit.getOfflinePlayer(linkedUuid) : null;
 
-        String minecraftUsername =
-                (linkedPlayer != null && linkedPlayer.getName() != null) ? linkedPlayer.getName() : discordUsername;
+        String minecraftUsername = (linkedPlayer != null && linkedPlayer.getName() != null)
+                ? linkedPlayer.getName()
+                : discordEffectiveName;
 
         Component displayComponent;
-        if (linkedPlayer != null && linkedPlayer.isOnline()) {
-            Player onlinePlayer = linkedPlayer.getPlayer();
-            displayComponent = onlinePlayer != null ? onlinePlayer.displayName() : Component.text(minecraftUsername);
-        } else if (linkedPlayer != null && linkedPlayer.getName() != null) {
-            displayComponent = Component.text(linkedPlayer.getName());
+        if (linkedPlayer != null && linkedPlayer.getPlayer() != null) {
+            displayComponent = linkedPlayer.getPlayer().displayName();
         } else {
-            displayComponent = Component.text(discordUsername);
+            displayComponent = Component.text(minecraftUsername);
         }
 
         boolean papiEnabled = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
@@ -122,9 +144,19 @@ public class DiscordSRVHook {
         baseResolvers.add(papiResolver);
         baseResolvers.add(Placeholder.parsed("username", minecraftUsername));
         baseResolvers.add(Placeholder.parsed("discord_username", discordUsername));
+        baseResolvers.add(Placeholder.parsed("discord_displayname", discordEffectiveName));
+        baseResolvers.add(Placeholder.parsed("discord_id", discordUserId));
+        baseResolvers.add(Placeholder.parsed("discord_channel", discordChannelName));
+        baseResolvers.add(Placeholder.parsed("discord_guild", discordGuildName));
+        baseResolvers.add(Placeholder.parsed("discord_role", topRoleName));
+        baseResolvers.add(Placeholder.parsed("discord_top_role", topRoleName));
+        baseResolvers.add(Placeholder.parsed("discord_role_color", topRoleColor));
+        baseResolvers.add(Placeholder.parsed("discord_all_roles", allRoles));
         baseResolvers.add(Placeholder.component("displayname", displayComponent));
         baseResolvers.add(Placeholder.parsed("reply_to", replyToName != null ? replyToName : ""));
+        baseResolvers.add(Placeholder.parsed("reply_to_message", replyToContent));
         baseResolvers.add(Placeholder.parsed("channel", channelTemplate.name));
+        baseResolvers.add(Placeholder.parsed("channel_id", matchedChannelId));
 
         TagResolver baseResolverBundle = TagResolver.resolver(baseResolvers);
 
@@ -161,5 +193,6 @@ public class DiscordSRVHook {
         }
 
         Bukkit.getConsoleSender().sendMessage(formattedComponent);
+        plugin.getChatLogger().log(formattedComponent);
     }
 }

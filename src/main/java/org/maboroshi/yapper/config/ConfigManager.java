@@ -10,9 +10,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import org.maboroshi.yapper.config.settings.ChannelTemplate;
-import org.maboroshi.yapper.config.settings.MainConfig;
-import org.maboroshi.yapper.config.settings.MessageConfig;
 import org.maboroshi.yapper.util.Log;
 
 public class ConfigManager {

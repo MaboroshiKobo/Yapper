@@ -1,4 +1,4 @@
-package org.maboroshi.yapper.renderer;
+package org.maboroshi.yapper.manager;
 
 import io.papermc.paper.chat.ChatRenderer;
 import java.util.ArrayList;
@@ -12,8 +12,8 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.maboroshi.yapper.Yapper;
-import org.maboroshi.yapper.config.settings.ChannelTemplate;
-import org.maboroshi.yapper.config.settings.ChannelTemplate.ChannelFormat;
+import org.maboroshi.yapper.config.ChannelTemplate;
+import org.maboroshi.yapper.config.ChannelTemplate.ChannelFormat;
 
 public class ChannelRenderer implements ChatRenderer.ViewerUnaware {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
@@ -28,6 +28,10 @@ public class ChannelRenderer implements ChatRenderer.ViewerUnaware {
 
     @Override
     public Component render(Player source, Component sourceDisplayName, Component message) {
+        if (channel == null) {
+            return message;
+        }
+
         ChannelFormat matchedFormat = null;
         for (ChannelFormat format : channel.formats.values()) {
             if (format.permission == null || format.permission.isEmpty() || source.hasPermission(format.permission)) {
@@ -74,6 +78,10 @@ public class ChannelRenderer implements ChatRenderer.ViewerUnaware {
 
         String layoutTemplate = plugin.getFormatUtils()
                 .resolveEmbeddedPlaceholders(source, matchedFormat.format, placeholderApiEnabled);
-        return MINI_MESSAGE.deserialize(layoutTemplate, TagResolver.resolver(layoutResolvers));
+        Component rendered = MINI_MESSAGE.deserialize(layoutTemplate, TagResolver.resolver(layoutResolvers));
+
+        plugin.getChatLogger().log(rendered);
+
+        return rendered;
     }
 }

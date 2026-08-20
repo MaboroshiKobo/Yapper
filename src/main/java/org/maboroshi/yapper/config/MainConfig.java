@@ -1,4 +1,4 @@
-package org.maboroshi.yapper.config.settings;
+package org.maboroshi.yapper.config;
 
 import de.exlll.configlib.Comment;
 import de.exlll.configlib.Configuration;
@@ -27,6 +27,12 @@ public class MainConfig {
     @Comment("Enable debug mode to see detailed logs in the console.")
     public boolean debug = false;
 
+    @Comment("Chat and message logging settings.")
+    public LoggingSettings logging = new LoggingSettings();
+
+    @Comment("Private messaging module settings.")
+    public PrivateMessageSettings privateMessages = new PrivateMessageSettings();
+
     @Comment({
         "Custom tags that can be reused across any of your channel format layouts.",
         "For example, defining 'prefix' here allows you to use <prefix> in your formats."
@@ -54,17 +60,43 @@ public class MainConfig {
                     "inventory|inv",
                             new MacroSetting(
                                     MacroAction.INVENTORY,
-                                    "<hover:show_text:\"<gray>Click to view <username>'s inventory.</gray>\"><dark_gray>[</dark_gray><username>'s Inventory<dark_gray>]</dark_gray></hover>",
+                                    "<hover:show_text:\"<gray>Click to view <username>'s inventory.</gray>\"><dark_gray><</dark_gray><username>'s Inventory<dark_gray>></dark_gray></hover>",
                                     5),
                     "enderchest|ec",
                             new MacroSetting(
                                     MacroAction.ENDERCHEST,
-                                    "<hover:show_text:\"<gray>Click to view <username>'s enderchest.</gray>\"><dark_gray>[</dark_gray><username>'s Ender Chest<dark_gray>]</dark_gray></hover>",
+                                    "<hover:show_text:\"<gray>Click to view <username>'s enderchest.</gray>\"><dark_gray><</dark_gray><username>'s Ender Chest<dark_gray>></dark_gray></hover>",
                                     5),
                     "money|balance|bal",
                             new MacroSetting(
                                     MacroAction.TEXT,
-                                    "<hover:show_text:'<gray>Click to send money to this player.</gray>'><click:suggest_command:'/pay <username> '><dark_gray>[</dark_gray><papi:vault_eco_balance_fixed><dark_gray>]</dark_gray></click></hover>")));
+                                    "<hover:show_text:'<gray>Click to send money to this player.</gray>'><click:suggest_command:'/pay <username> '><dark_gray><</dark_gray><papi:vault_eco_balance_fixed><dark_gray>></dark_gray></click></hover>")));
+
+    @Configuration
+    public static class LoggingSettings {
+        @Comment("Enable logging all chat messages, whispers, and Discord bridge messages to daily log files.")
+        public boolean enabled = true;
+    }
+
+    @Configuration
+    public static class PrivateMessageSettings {
+        @Comment("Enable Yapper's native private messaging system.")
+        public boolean enabled = true;
+
+        @Comment({
+            "Format seen by the sender of the private message.",
+            "Available placeholders: <username>, <displayname>, <sender_username>, <sender_displayname>, <recipient_username>, <recipient_displayname>, <recipient>, <message>"
+        })
+        public String senderFormat =
+                "<dark_gray>[</dark_gray><light_purple>me</light_purple> <dark_gray>➡</dark_gray> <light_purple><recipient_displayname></light_purple><dark_gray>]</dark_gray> <message>";
+
+        @Comment({
+            "Format seen by the recipient of the private message.",
+            "Available placeholders: <username>, <displayname>, <sender_username>, <sender_displayname>, <recipient_username>, <recipient_displayname>, <sender>, <message>"
+        })
+        public String recipientFormat =
+                "<dark_gray>[</dark_gray><light_purple><sender_displayname></light_purple> <dark_gray>➡</dark_gray> <light_purple>me</light_purple><dark_gray>]</dark_gray> <message>";
+    }
 
     @Configuration
     public static class MacroSetting {

@@ -2,6 +2,7 @@ package org.maboroshi.yapper;
 
 import github.scarsz.discordsrv.DiscordSRV;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import java.util.List;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -9,11 +10,15 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.incendo.cloud.annotations.AnnotationParser;
 import org.incendo.cloud.execution.ExecutionCoordinator;
 import org.incendo.cloud.paper.PaperCommandManager;
-import org.maboroshi.yapper.command.YapperCommand;
+import org.maboroshi.yapper.command.AdminCommand;
+import org.maboroshi.yapper.command.ChannelCommand;
+import org.maboroshi.yapper.command.PrivateMessageCommand;
 import org.maboroshi.yapper.config.ConfigManager;
 import org.maboroshi.yapper.hook.DiscordSRVHook;
 import org.maboroshi.yapper.listener.ChatListener;
 import org.maboroshi.yapper.listener.InventoryListener;
+import org.maboroshi.yapper.manager.ChatLogger;
+import org.maboroshi.yapper.manager.PrivateMessageManager;
 import org.maboroshi.yapper.manager.SessionManager;
 import org.maboroshi.yapper.util.FormatUtils;
 import org.maboroshi.yapper.util.Keys;
@@ -25,6 +30,8 @@ public final class Yapper extends JavaPlugin {
     private ConfigManager configManager;
     private FormatUtils formatUtils;
     private SessionManager sessionManager;
+    private PrivateMessageManager privateMessageManager;
+    private ChatLogger chatLogger;
     private PaperCommandManager<CommandSourceStack> commandManager;
     private ChatListener chatListener;
 
@@ -35,6 +42,8 @@ public final class Yapper extends JavaPlugin {
         this.configManager = new ConfigManager(getDataFolder());
         this.formatUtils = new FormatUtils();
         this.sessionManager = new SessionManager();
+        this.privateMessageManager = new PrivateMessageManager(this);
+        this.chatLogger = new ChatLogger(this);
 
         Log.init(
                 getComponentLogger(),
@@ -56,7 +65,8 @@ public final class Yapper extends JavaPlugin {
         AnnotationParser<CommandSourceStack> annotationParser =
                 new AnnotationParser<>(commandManager, CommandSourceStack.class);
 
-        annotationParser.parse(new YapperCommand(this));
+        List.of(new AdminCommand(this), new ChannelCommand(this), new PrivateMessageCommand(this))
+                .forEach(annotationParser::parse);
 
         if (Bukkit.getPluginManager().isPluginEnabled("DiscordSRV")) {
             DiscordSRV.api.subscribe(new DiscordSRVHook(this));
@@ -80,6 +90,9 @@ public final class Yapper extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (this.chatLogger != null) {
+            this.chatLogger.shutdown();
+        }
         Log.info("Yapper has been disabled!");
         plugin = null;
     }
@@ -98,6 +111,14 @@ public final class Yapper extends JavaPlugin {
 
     public SessionManager getSessionManager() {
         return sessionManager;
+    }
+
+    public PrivateMessageManager getPrivateMessageManager() {
+        return privateMessageManager;
+    }
+
+    public ChatLogger getChatLogger() {
+        return chatLogger;
     }
 
     public ChatListener getChatListener() {

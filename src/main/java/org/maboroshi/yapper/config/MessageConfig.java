@@ -1,4 +1,4 @@
-package org.maboroshi.yapper.config.settings;
+package org.maboroshi.yapper.config;
 
 import de.exlll.configlib.Comment;
 import de.exlll.configlib.Configuration;
@@ -26,6 +26,9 @@ public class MessageConfig {
 
     @Comment("Active channel switching notifications and interaction responses.")
     public ChannelMessages channels = new ChannelMessages();
+
+    @Comment("Private messaging feedback and error responses.")
+    public PrivateMessageMessages privateMessages = new PrivateMessageMessages();
 
     @Configuration
     public static class CommandMessages {
@@ -116,5 +119,23 @@ public class MessageConfig {
 
         @Comment("Status text when a channel is hidden.")
         public String statusHidden = "Hidden";
+    }
+
+    @Configuration
+    public static class PrivateMessageMessages {
+        @Comment("Message sent when private messaging is disabled.")
+        public String disabled = "<prefix> <red>Private messaging is currently disabled.</red>";
+
+        @Comment("Message sent when the targeted player is not found or is offline.")
+        public String playerNotFound = "<prefix> <red>Player not found or is offline.</red>";
+
+        @Comment("Message sent when a player attempts to message themselves.")
+        public String cannotMessageSelf = "<prefix> <red>You cannot message yourself.</red>";
+
+        @Comment("Message sent when a player attempts to reply without conversation history.")
+        public String noReplyTarget = "<prefix> <red>You have nobody to reply to.</red>";
+
+        @Comment("Message sent when the reply target is no longer online.")
+        public String replyTargetOffline = "<prefix> <red>The player you were messaging is no longer online.</red>";
     }
 }

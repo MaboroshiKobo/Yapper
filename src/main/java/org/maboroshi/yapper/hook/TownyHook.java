@@ -7,33 +7,31 @@ import com.palmergames.bukkit.towny.object.Town;
 import org.bukkit.entity.Player;
 
 public class TownyHook {
-    private static final TownyAPI API = TownyAPI.getInstance();
 
     public static boolean isVisibleTo(Player sender, Player recipient, String channelId) {
-        if (API == null) return false;
+        TownyAPI api = TownyAPI.getInstance();
+        if (api == null) return false;
 
-        Resident senderResident = API.getResident(sender);
-        Resident recipientResident = API.getResident(recipient);
-
+        Resident senderResident = api.getResident(sender);
+        Resident recipientResident = api.getResident(recipient);
         if (senderResident == null || recipientResident == null) return false;
 
         return switch (channelId.toLowerCase()) {
             case "towny-town" -> {
-                Town senderTown = senderResident.getTownOrNull();
-                yield senderTown != null && senderTown.equals(recipientResident.getTownOrNull());
+                Town town = senderResident.getTownOrNull();
+                yield town != null && town.equals(recipientResident.getTownOrNull());
             }
             case "towny-nation" -> {
-                Nation senderNation = senderResident.getNationOrNull();
-                yield senderNation != null && senderNation.equals(recipientResident.getNationOrNull());
+                Nation nation = senderResident.getNationOrNull();
+                yield nation != null && nation.equals(recipientResident.getNationOrNull());
             }
             case "towny-alliance" -> {
-                Nation senderAllianceNation = senderResident.getNationOrNull();
+                Nation senderNation = senderResident.getNationOrNull();
                 Nation recipientNation = recipientResident.getNationOrNull();
 
-                yield senderAllianceNation != null
+                yield senderNation != null
                         && recipientNation != null
-                        && (senderAllianceNation.equals(recipientNation)
-                                || senderAllianceNation.hasAlly(recipientNation));
+                        && (senderNation.equals(recipientNation) || senderNation.hasAlly(recipientNation));
             }
             default -> false;
         };

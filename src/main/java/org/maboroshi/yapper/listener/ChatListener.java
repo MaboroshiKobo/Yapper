@@ -2,16 +2,12 @@ package org.maboroshi.yapper.listener;
 
 import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.minimessage.tag.Tag;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -23,12 +19,12 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.maboroshi.yapper.Yapper;
+import org.maboroshi.yapper.config.ChannelTemplate;
 import org.maboroshi.yapper.config.ConfigManager;
-import org.maboroshi.yapper.config.settings.ChannelTemplate;
-import org.maboroshi.yapper.config.settings.MessageConfig;
+import org.maboroshi.yapper.config.MessageConfig;
 import org.maboroshi.yapper.hook.TownyHook;
+import org.maboroshi.yapper.manager.ChannelRenderer;
 import org.maboroshi.yapper.manager.MacroProcessor;
-import org.maboroshi.yapper.renderer.ChannelRenderer;
 import org.maboroshi.yapper.util.Log;
 
 public class ChatListener implements Listener {
@@ -36,10 +32,12 @@ public class ChatListener implements Listener {
 
     private final Yapper plugin;
     private final ConfigManager config;
+    private final MacroProcessor macroProcessor;
 
     public ChatListener(Yapper plugin) {
         this.plugin = plugin;
         this.config = plugin.getConfigManager();
+        this.macroProcessor = new MacroProcessor(plugin);
     }
 
     @EventHandler
@@ -52,6 +50,7 @@ public class ChatListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         UUID playerUuid = event.getPlayer().getUniqueId();
         plugin.getSessionManager().clearSession(playerUuid);
+        plugin.getPrivateMessageManager().clearSession(playerUuid);
         Log.debug("Cleared active session for UUID: " + playerUuid);
     }
 
@@ -87,44 +86,10 @@ public class ChatListener implements Listener {
         plugin.getSessionManager().updateLastUsedChannel(senderUuid, channelId);
 
         boolean placeholderApiEnabled = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
-        final TagResolver papiResolver;
+        TagResolver papiResolver = plugin.getFormatUtils().createPapiResolver(sender, placeholderApiEnabled);
 
-        if (placeholderApiEnabled) {
-            papiResolver = TagResolver.resolver("papi", (args, context) -> {
-                if (!args.hasNext()) return Tag.selfClosingInserting(Component.empty());
-
-                List<String> argList = new ArrayList<>();
-                while (args.hasNext()) argList.add(args.pop().value());
-
-                String papiQuery = String.join(":", argList);
-                String papiText = PlaceholderAPI.setPlaceholders(sender, "%" + papiQuery + "%");
-
-                Component tempComponent;
-                if (papiText.contains("§")) {
-                    tempComponent = LegacyComponentSerializer.legacySection().deserialize(papiText);
-                } else {
-                    try {
-                        tempComponent = MINI_MESSAGE.deserialize(papiText);
-                    } catch (Exception e) {
-                        tempComponent = Component.text(papiText);
-                    }
-                }
-
-                final Component finalComponent = tempComponent;
-                String plainText = PlainTextComponentSerializer.plainText().serialize(finalComponent);
-                if (plainText.isEmpty()) {
-                    return Tag.styling(builder -> builder.merge(finalComponent.style()));
-                }
-
-                return Tag.selfClosingInserting(finalComponent);
-            });
-        } else {
-            papiResolver = TagResolver.resolver("papi", (args, context) -> Tag.selfClosingInserting(Component.empty()));
-        }
-
-        MacroProcessor processor = new MacroProcessor(plugin);
         List<TagResolver> playerMsgResolvers =
-                processor.buildMacroResolvers(sender, papiResolver, placeholderApiEnabled);
+                macroProcessor.buildMacroResolvers(sender, papiResolver, placeholderApiEnabled);
 
         String plainTextMessage = PlainTextComponentSerializer.plainText().serialize(event.message());
 

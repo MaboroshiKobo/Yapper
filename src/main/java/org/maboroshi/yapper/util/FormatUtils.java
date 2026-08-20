@@ -17,6 +17,7 @@ import org.bukkit.entity.Player;
 public class FormatUtils {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private static final Pattern PAPI_EMBED_PATTERN = Pattern.compile("<papi:([^>]+)>");
+    private static final Pattern RECIPIENT_PAPI_EMBED_PATTERN = Pattern.compile("<recipient_papi:([^>]+)>");
 
     public MiniMessage getChatParser(Player player) {
         List<TagResolver> allowedTags = new ArrayList<>();
@@ -50,11 +51,19 @@ public class FormatUtils {
     }
 
     public TagResolver createPapiResolver(OfflinePlayer player, boolean papiEnabled) {
+        return createNamedPapiResolver("papi", player, papiEnabled);
+    }
+
+    public TagResolver createRecipientPapiResolver(OfflinePlayer player, boolean papiEnabled) {
+        return createNamedPapiResolver("recipient_papi", player, papiEnabled);
+    }
+
+    private TagResolver createNamedPapiResolver(String tagName, OfflinePlayer player, boolean papiEnabled) {
         if (!papiEnabled || player == null) {
-            return TagResolver.resolver("papi", (args, context) -> Tag.selfClosingInserting(Component.empty()));
+            return TagResolver.resolver(tagName, (args, context) -> Tag.selfClosingInserting(Component.empty()));
         }
 
-        return TagResolver.resolver("papi", (args, context) -> {
+        return TagResolver.resolver(tagName, (args, context) -> {
             if (!args.hasNext()) return Tag.selfClosingInserting(Component.empty());
             List<String> argList = new ArrayList<>();
             while (args.hasNext()) {
@@ -77,17 +86,33 @@ public class FormatUtils {
     }
 
     public String resolveEmbeddedPlaceholders(OfflinePlayer player, String text, boolean papiEnabled) {
-        if (text == null || !papiEnabled || !text.contains("<papi:")) {
+        return resolveEmbeddedPlaceholders(player, null, text, papiEnabled);
+    }
+
+    public String resolveEmbeddedPlaceholders(
+            OfflinePlayer sender, OfflinePlayer recipient, String text, boolean papiEnabled) {
+        if (text == null || !papiEnabled) {
             return text;
         }
 
-        Matcher matcher = PAPI_EMBED_PATTERN.matcher(text);
+        String result = text;
+        if (sender != null && result.contains("<papi:")) {
+            result = replacePapiMatches(sender, result, PAPI_EMBED_PATTERN);
+        }
+        if (recipient != null && result.contains("<recipient_papi:")) {
+            result = replacePapiMatches(recipient, result, RECIPIENT_PAPI_EMBED_PATTERN);
+        }
+
+        return result;
+    }
+
+    private String replacePapiMatches(OfflinePlayer player, String text, Pattern pattern) {
+        Matcher matcher = pattern.matcher(text);
         StringBuilder sb = new StringBuilder();
 
         while (matcher.find()) {
             String placeholderQuery = matcher.group(1);
-            String papiText =
-                    player != null ? PlaceholderAPI.setPlaceholders(player, "%" + placeholderQuery + "%") : "";
+            String papiText = PlaceholderAPI.setPlaceholders(player, "%" + placeholderQuery + "%");
 
             String mmCompatibleText;
             if (papiText.contains("§")) {

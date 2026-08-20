@@ -21,8 +21,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.maboroshi.yapper.Yapper;
-import org.maboroshi.yapper.config.settings.MainConfig;
-import org.maboroshi.yapper.menu.PreviewHolder;
+import org.maboroshi.yapper.config.MainConfig;
+import org.maboroshi.yapper.util.PreviewHolder;
 
 public class MacroProcessor {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
