@@ -42,7 +42,7 @@ dependencies {
     compileOnly("me.clip:placeholderapi:2.12.3")
     compileOnly("com.palmergames.bukkit.towny:towny:0.103.1.1")
     compileOnly("com.discordsrv:discordsrv:1.30.5")
-    compileOnly("net.dv8tion:JDA:6.6.0")
+    compileOnly("net.dv8tion:JDA:6.7.0")
 }
 
 tasks.register("printVersion") {
