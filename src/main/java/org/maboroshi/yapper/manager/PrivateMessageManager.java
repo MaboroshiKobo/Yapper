@@ -6,7 +6,10 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.Context;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.Tag;
+import net.kyori.adventure.text.minimessage.tag.resolver.ArgumentQueue;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -51,10 +54,10 @@ public class PrivateMessageManager {
         boolean papiEnabled = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
         TagResolver senderPapiResolver = plugin.getFormatUtils().createPapiResolver(sender, papiEnabled);
 
-        List<TagResolver> macroResolvers = macroProcessor.buildMacroResolvers(sender, senderPapiResolver, papiEnabled);
+        TagResolver macroResolver = macroProcessor.createMacroResolver(sender, senderPapiResolver, papiEnabled);
 
         MiniMessage chatParser = plugin.getFormatUtils().getChatParser(sender);
-        Component parsedMessage = chatParser.deserialize(rawMessage, TagResolver.resolver(macroResolvers));
+        Component parsedMessage = chatParser.deserialize(rawMessage, macroResolver);
 
         Component senderFormatted =
                 formatMessage(sender, recipient, parsedMessage, mainConfig.privateMessages.senderFormat, papiEnabled);
@@ -112,27 +115,49 @@ public class PrivateMessageManager {
 
         TagResolver baseResolverBundle = TagResolver.resolver(baseResolvers);
 
-        List<TagResolver> layoutResolvers = new ArrayList<>(baseResolvers);
-        layoutResolvers.add(Placeholder.component("message", messageComponent));
+        TagResolver customTagsResolver = new TagResolver() {
+            @Override
+            public Tag resolve(String tagName, ArgumentQueue args, Context ctx) {
+                String rawTagValue =
+                        plugin.getConfigManager().getMainConfig().customTags.get(tagName);
+                if (rawTagValue == null) {
+                    return null;
+                }
 
-        for (Map.Entry<String, String> tagEntry :
-                plugin.getConfigManager().getMainConfig().customTags.entrySet()) {
-            String processedTagValue = plugin.getFormatUtils()
-                    .resolveEmbeddedPlaceholders(sender, recipient, tagEntry.getValue(), papiEnabled);
-            Component tagComponent = MINI_MESSAGE.deserialize(processedTagValue, baseResolverBundle);
+                if (rawTagValue.isBlank()) {
+                    return Tag.selfClosingInserting(Component.empty());
+                }
 
-            if (PlainTextComponentSerializer.plainText()
-                    .serialize(tagComponent)
-                    .trim()
-                    .isEmpty()) {
-                tagComponent = Component.empty();
+                String processedValue = plugin.getFormatUtils()
+                        .resolveEmbeddedPlaceholders(sender, recipient, rawTagValue, papiEnabled);
+
+                if (processedValue.isBlank()) {
+                    return Tag.selfClosingInserting(Component.empty());
+                }
+
+                Component tagComponent = MINI_MESSAGE.deserialize(processedValue, baseResolverBundle);
+
+                if (PlainTextComponentSerializer.plainText()
+                        .serialize(tagComponent)
+                        .trim()
+                        .isEmpty()) {
+                    return Tag.selfClosingInserting(Component.empty());
+                }
+
+                return Tag.selfClosingInserting(tagComponent);
             }
 
-            layoutResolvers.add(Placeholder.component(tagEntry.getKey(), tagComponent));
-        }
+            @Override
+            public boolean has(String tagName) {
+                return plugin.getConfigManager().getMainConfig().customTags.containsKey(tagName);
+            }
+        };
+
+        TagResolver messageResolver = Placeholder.component("message", messageComponent);
+        TagResolver layoutResolver = TagResolver.resolver(baseResolverBundle, customTagsResolver, messageResolver);
 
         String resolvedTemplate =
                 plugin.getFormatUtils().resolveEmbeddedPlaceholders(sender, recipient, layoutTemplate, papiEnabled);
-        return MINI_MESSAGE.deserialize(resolvedTemplate, TagResolver.resolver(layoutResolvers));
+        return MINI_MESSAGE.deserialize(resolvedTemplate, layoutResolver);
     }
 }
