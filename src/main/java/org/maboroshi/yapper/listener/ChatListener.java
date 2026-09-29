@@ -2,7 +2,6 @@ package org.maboroshi.yapper.listener;
 
 import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AsyncChatEvent;
-import java.util.List;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -88,14 +87,12 @@ public class ChatListener implements Listener {
         boolean placeholderApiEnabled = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
         TagResolver papiResolver = plugin.getFormatUtils().createPapiResolver(sender, placeholderApiEnabled);
 
-        List<TagResolver> playerMsgResolvers =
-                macroProcessor.buildMacroResolvers(sender, papiResolver, placeholderApiEnabled);
+        TagResolver macroResolver = macroProcessor.createMacroResolver(sender, papiResolver, placeholderApiEnabled);
 
         String plainTextMessage = PlainTextComponentSerializer.plainText().serialize(event.message());
 
         MiniMessage playerChatParser = plugin.getFormatUtils().getChatParser(sender);
-        Component formattedPlayerMessage =
-                playerChatParser.deserialize(plainTextMessage, TagResolver.resolver(playerMsgResolvers));
+        Component formattedPlayerMessage = playerChatParser.deserialize(plainTextMessage, macroResolver);
         event.message(formattedPlayerMessage);
 
         String targetChannelId = channelId;

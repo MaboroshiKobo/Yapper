@@ -1,15 +1,15 @@
 package org.maboroshi.yapper.manager;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickCallback;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.minimessage.Context;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.Tag;
+import net.kyori.adventure.text.minimessage.tag.resolver.ArgumentQueue;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
@@ -32,19 +32,15 @@ public class MacroProcessor {
         this.plugin = plugin;
     }
 
-    public List<TagResolver> buildMacroResolvers(Player sender, TagResolver papiResolver, boolean papiEnabled) {
-        List<TagResolver> resolvers = new ArrayList<>();
+    public TagResolver createMacroResolver(Player sender, TagResolver papiResolver, boolean papiEnabled) {
+        return new TagResolver() {
+            @Override
+            public Tag resolve(String tagName, ArgumentQueue args, Context ctx) {
+                String normalizedTag = tagName.toLowerCase();
+                MainConfig.MacroSetting setting = findMacroSetting(normalizedTag);
 
-        for (Map.Entry<String, MainConfig.MacroSetting> macroEntry :
-                plugin.getConfigManager().getMainConfig().macros.entrySet()) {
-            String rawMacroName = macroEntry.getKey();
-            MainConfig.MacroSetting setting = macroEntry.getValue();
-            String[] macroAliases = rawMacroName.split("\\|");
-
-            for (String alias : macroAliases) {
-                String normalizedAlias = alias.trim().toLowerCase();
-                if (!sender.hasPermission("yapper.macro." + normalizedAlias)) {
-                    continue;
+                if (setting == null || !sender.hasPermission("yapper.macro." + normalizedTag)) {
+                    return null;
                 }
 
                 String finalMacroValue =
@@ -70,9 +66,7 @@ public class MacroProcessor {
                                     },
                                     options -> options.uses(ClickCallback.UNLIMITED_USES)
                                             .lifetime(Duration.ofMinutes(setting.previewLifetime))));
-                    resolvers.add(TagResolver.resolver(
-                            normalizedAlias, (args, ctx) -> Tag.selfClosingInserting(invComponent)));
-                    continue;
+                    return Tag.selfClosingInserting(invComponent);
                 }
 
                 if (setting.action == MainConfig.MacroAction.ENDERCHEST) {
@@ -95,14 +89,14 @@ public class MacroProcessor {
                                     },
                                     options -> options.uses(ClickCallback.UNLIMITED_USES)
                                             .lifetime(Duration.ofMinutes(setting.previewLifetime))));
-                    resolvers.add(TagResolver.resolver(
-                            normalizedAlias, (args, ctx) -> Tag.selfClosingInserting(ecComponent)));
-                    continue;
+                    return Tag.selfClosingInserting(ecComponent);
                 }
 
                 if (setting.action == MainConfig.MacroAction.ITEM) {
                     ItemStack activeItem = sender.getInventory().getItemInMainHand();
-                    if (activeItem.getType().isAir()) continue;
+                    if (activeItem.getType().isAir()) {
+                        return Tag.selfClosingInserting(Component.empty());
+                    }
 
                     Component cleanName;
                     ItemMeta activeMeta = activeItem.getItemMeta();
@@ -155,24 +149,40 @@ public class MacroProcessor {
                     TagResolver itemMacroResolver = TagResolver.resolver(
                             papiResolver, TagResolver.resolver("item_preview", Tag.selfClosingInserting(itemCore)));
                     Component compiledMacro = MINI_MESSAGE.deserialize(finalMacroValue, itemMacroResolver);
-                    resolvers.add(TagResolver.resolver(
-                            normalizedAlias, (args, ctx) -> Tag.selfClosingInserting(compiledMacro)));
-                    continue;
+                    return Tag.selfClosingInserting(compiledMacro);
                 }
 
                 if (setting.action == MainConfig.MacroAction.TEXT) {
-                    resolvers.add(TagResolver.resolver(normalizedAlias, (args, ctx) -> {
-                        try {
-                            return Tag.selfClosingInserting(MINI_MESSAGE.deserialize(finalMacroValue, papiResolver));
-                        } catch (Exception e) {
-                            return Tag.selfClosingInserting(
-                                    LegacyComponentSerializer.legacySection().deserialize(finalMacroValue));
-                        }
-                    }));
+                    try {
+                        return Tag.selfClosingInserting(MINI_MESSAGE.deserialize(finalMacroValue, papiResolver));
+                    } catch (Exception e) {
+                        return Tag.selfClosingInserting(
+                                LegacyComponentSerializer.legacySection().deserialize(finalMacroValue));
+                    }
+                }
+
+                return null;
+            }
+
+            @Override
+            public boolean has(String tagName) {
+                String normalizedTag = tagName.toLowerCase();
+                return findMacroSetting(normalizedTag) != null && sender.hasPermission("yapper.macro." + normalizedTag);
+            }
+        };
+    }
+
+    private MainConfig.MacroSetting findMacroSetting(String alias) {
+        for (Map.Entry<String, MainConfig.MacroSetting> entry :
+                plugin.getConfigManager().getMainConfig().macros.entrySet()) {
+            String[] aliases = entry.getKey().split("\\|");
+            for (String a : aliases) {
+                if (a.trim().equalsIgnoreCase(alias)) {
+                    return entry.getValue();
                 }
             }
         }
-        return resolvers;
+        return null;
     }
 
     private String getFallbackItemName(ItemStack item) {
