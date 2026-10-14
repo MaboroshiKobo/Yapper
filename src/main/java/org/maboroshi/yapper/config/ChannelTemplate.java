@@ -28,7 +28,7 @@ public class ChannelTemplate {
         "<discord_role_color>, <discord_all_roles>, <channel>, <channel_id>, <message>"
     })
     public String discordFormat =
-            "<gray>(<#5865F2>Discord</#5865F2> | <white><channel></white>)</gray> <username> <separator> <message>";
+            "<#5865F2>Discord <gray>(<channel>)</gray> ➟</#5865F2> <username> <separator> <message>";
 
     @Comment({
         "The format used when a message from Discord is replying to another message.",
@@ -39,7 +39,7 @@ public class ChannelTemplate {
         "<channel>, <channel_id>, <message>"
     })
     public String discordReplyFormat =
-            "<gray>(<#5865F2>Discord</#5865F2> | <white><channel></white>)</gray> <username> <gray>(replying to <white><reply_to></white>)</gray> <separator> <message>";
+            "<#5865F2>Discord <gray>(<channel>)</gray> ➟</#5865F2> <username> <gray>(replying to <white><reply_to></white>)</gray> <separator> <message>";
 
     @Comment({
         "A list of chat formats prioritized from top to bottom.",

@@ -16,7 +16,7 @@ public class MessageConfig {
     }
 
     @Comment("The system-wide prefix variable. You can use <prefix> inside any other response below.")
-    public String prefix = "<color:#ad37fd><bold>Yapper</bold> ➟</color>";
+    public String prefix = "<#ad37fd>Yapper ➟</#ad37fd>";
 
     @Comment("Core plugin command executions and administrative feedback responses.")
     public CommandMessages commands = new CommandMessages();
