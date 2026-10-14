@@ -55,7 +55,7 @@ public class MainConfig {
                     "item",
                             new MacroSetting(
                                     MacroAction.ITEM,
-                                    "<dark_gray>[</dark_gray><item_preview><dark_gray>]</dark_gray>",
+                                    "<dark_gray><</dark_gray><item_amount:'<amount>x '><item_preview><dark_gray>></dark_gray>",
                                     5),
                     "inventory|inv",
                             new MacroSetting(
@@ -102,6 +102,7 @@ public class MainConfig {
     public static class MacroSetting {
         public MacroAction action;
         public String value;
+        public String multipleValue;
         public Integer previewLifetime;
 
         public MacroSetting() {}
@@ -109,12 +110,21 @@ public class MainConfig {
         public MacroSetting(MacroAction action, String value) {
             this.action = action;
             this.value = value;
+            this.multipleValue = null;
             this.previewLifetime = null;
         }
 
         public MacroSetting(MacroAction action, String value, int previewLifetime) {
             this.action = action;
             this.value = value;
+            this.multipleValue = null;
+            this.previewLifetime = previewLifetime;
+        }
+
+        public MacroSetting(MacroAction action, String value, String multipleValue, int previewLifetime) {
+            this.action = action;
+            this.value = value;
+            this.multipleValue = multipleValue;
             this.previewLifetime = previewLifetime;
         }
     }

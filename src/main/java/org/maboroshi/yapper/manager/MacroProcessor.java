@@ -146,8 +146,24 @@ public class MacroProcessor {
                                     options -> options.uses(ClickCallback.UNLIMITED_USES)
                                             .lifetime(Duration.ofMinutes(setting.previewLifetime))));
 
+                    TagResolver amountResolver = TagResolver.resolver("item_amount", (argumentQueue, context) -> {
+                        int amount = activeItem.getAmount();
+                        if (argumentQueue.hasNext()) {
+                            if (amount <= 1) {
+                                return Tag.selfClosingInserting(Component.empty());
+                            }
+                            String format = argumentQueue.pop().value();
+                            return Tag.selfClosingInserting(MINI_MESSAGE.deserialize(
+                                    format,
+                                    TagResolver.resolver("amount", Tag.selfClosingInserting(Component.text(amount)))));
+                        }
+                        return Tag.selfClosingInserting(Component.text(amount));
+                    });
+
                     TagResolver itemMacroResolver = TagResolver.resolver(
-                            papiResolver, TagResolver.resolver("item_preview", Tag.selfClosingInserting(itemCore)));
+                            papiResolver,
+                            TagResolver.resolver("item_preview", Tag.selfClosingInserting(itemCore)),
+                            amountResolver);
                     Component compiledMacro = MINI_MESSAGE.deserialize(finalMacroValue, itemMacroResolver);
                     return Tag.selfClosingInserting(compiledMacro);
                 }
