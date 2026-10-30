@@ -27,8 +27,6 @@ import org.maboroshi.yapper.manager.MacroProcessor;
 import org.maboroshi.yapper.util.Log;
 
 public class ChatListener implements Listener {
-    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
-
     private final Yapper plugin;
     private final ConfigManager config;
     private final MacroProcessor macroProcessor;
@@ -73,12 +71,12 @@ public class ChatListener implements Listener {
             event.setCancelled(true);
 
             MessageConfig msgConfig = plugin.getConfigManager().getMessageConfig();
-            TagResolver placeholders = TagResolver.resolver(
+
+            sender.sendRichMessage(
+                    msgConfig.channels.noPermissionSend,
                     Placeholder.parsed("prefix", msgConfig.prefix),
                     Placeholder.parsed("channel", channelTemplate.name),
                     Placeholder.parsed("channel_id", channelId));
-
-            sender.sendMessage(MINI_MESSAGE.deserialize(msgConfig.channels.noPermissionSend, placeholders));
             return;
         }
 

@@ -40,14 +40,13 @@ public class PrivateMessageManager {
         MessageConfig msgConfig = plugin.getConfigManager().getMessageConfig();
 
         if (!mainConfig.privateMessages.enabled) {
-            sender.sendMessage(MINI_MESSAGE.deserialize(
-                    msgConfig.privateMessages.disabled, Placeholder.parsed("prefix", msgConfig.prefix)));
+            sender.sendRichMessage(msgConfig.privateMessages.disabled, Placeholder.parsed("prefix", msgConfig.prefix));
             return;
         }
 
         if (sender.getUniqueId().equals(recipient.getUniqueId())) {
-            sender.sendMessage(MINI_MESSAGE.deserialize(
-                    msgConfig.privateMessages.cannotMessageSelf, Placeholder.parsed("prefix", msgConfig.prefix)));
+            sender.sendRichMessage(
+                    msgConfig.privateMessages.cannotMessageSelf, Placeholder.parsed("prefix", msgConfig.prefix));
             return;
         }
 
@@ -80,15 +79,15 @@ public class PrivateMessageManager {
         UUID targetUuid = replyTargets.get(sender.getUniqueId());
 
         if (targetUuid == null) {
-            sender.sendMessage(MINI_MESSAGE.deserialize(
-                    msgConfig.privateMessages.noReplyTarget, Placeholder.parsed("prefix", msgConfig.prefix)));
+            sender.sendRichMessage(
+                    msgConfig.privateMessages.noReplyTarget, Placeholder.parsed("prefix", msgConfig.prefix));
             return;
         }
 
         Player recipient = Bukkit.getPlayer(targetUuid);
         if (recipient == null || !recipient.isOnline() || !sender.canSee(recipient)) {
-            sender.sendMessage(MINI_MESSAGE.deserialize(
-                    msgConfig.privateMessages.replyTargetOffline, Placeholder.parsed("prefix", msgConfig.prefix)));
+            sender.sendRichMessage(
+                    msgConfig.privateMessages.replyTargetOffline, Placeholder.parsed("prefix", msgConfig.prefix));
             return;
         }
 

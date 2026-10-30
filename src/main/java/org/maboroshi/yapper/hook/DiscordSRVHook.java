@@ -140,34 +140,33 @@ public class DiscordSRVHook {
         boolean papiEnabled = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
         TagResolver papiResolver = plugin.getFormatUtils().createPapiResolver(linkedPlayer, papiEnabled);
 
-        List<TagResolver> baseResolvers = new ArrayList<>();
-        baseResolvers.add(papiResolver);
-        baseResolvers.add(Placeholder.parsed("username", minecraftUsername));
-        baseResolvers.add(Placeholder.parsed("discord_username", discordUsername));
-        baseResolvers.add(Placeholder.parsed("discord_displayname", discordEffectiveName));
-        baseResolvers.add(Placeholder.parsed("discord_id", discordUserId));
-        baseResolvers.add(Placeholder.parsed("discord_channel", discordChannelName));
-        baseResolvers.add(Placeholder.parsed("discord_guild", discordGuildName));
-        baseResolvers.add(Placeholder.parsed("discord_role", topRoleName));
-        baseResolvers.add(Placeholder.parsed("discord_top_role", topRoleName));
-        baseResolvers.add(Placeholder.parsed("discord_role_color", topRoleColor));
-        baseResolvers.add(Placeholder.parsed("discord_all_roles", allRoles));
-        baseResolvers.add(Placeholder.component("displayname", displayComponent));
-        baseResolvers.add(Placeholder.parsed("reply_to", replyToName != null ? replyToName : ""));
-        baseResolvers.add(Placeholder.parsed("reply_to_message", replyToContent));
-        baseResolvers.add(Placeholder.parsed("channel", channelTemplate.name));
-        baseResolvers.add(Placeholder.parsed("channel_id", matchedChannelId));
+        List<TagResolver> resolvers = new ArrayList<>(20);
+        resolvers.add(papiResolver);
+        resolvers.add(Placeholder.parsed("username", minecraftUsername));
+        resolvers.add(Placeholder.parsed("discord_username", discordUsername));
+        resolvers.add(Placeholder.parsed("discord_displayname", discordEffectiveName));
+        resolvers.add(Placeholder.parsed("discord_id", discordUserId));
+        resolvers.add(Placeholder.parsed("discord_channel", discordChannelName));
+        resolvers.add(Placeholder.parsed("discord_guild", discordGuildName));
+        resolvers.add(Placeholder.parsed("discord_role", topRoleName));
+        resolvers.add(Placeholder.parsed("discord_top_role", topRoleName));
+        resolvers.add(Placeholder.parsed("discord_role_color", topRoleColor));
+        resolvers.add(Placeholder.parsed("discord_all_roles", allRoles));
+        resolvers.add(Placeholder.component("displayname", displayComponent));
+        resolvers.add(Placeholder.parsed("reply_to", replyToName != null ? replyToName : ""));
+        resolvers.add(Placeholder.parsed("reply_to_message", replyToContent));
+        resolvers.add(Placeholder.parsed("channel", channelTemplate.name));
+        resolvers.add(Placeholder.parsed("channel_id", matchedChannelId));
 
-        TagResolver baseResolverBundle = TagResolver.resolver(baseResolvers);
+        TagResolver baseBundle = TagResolver.resolver(resolvers);
 
-        List<TagResolver> layoutResolvers = new ArrayList<>(baseResolvers);
-        layoutResolvers.add(Placeholder.unparsed("message", rawContent));
+        resolvers.add(Placeholder.unparsed("message", rawContent));
 
         for (Map.Entry<String, String> tagEntry :
                 plugin.getConfigManager().getMainConfig().customTags.entrySet()) {
             String resolvedTagValue =
                     plugin.getFormatUtils().resolveEmbeddedPlaceholders(linkedPlayer, tagEntry.getValue(), papiEnabled);
-            Component tagComponent = MINI_MESSAGE.deserialize(resolvedTagValue, baseResolverBundle);
+            Component tagComponent = MINI_MESSAGE.deserialize(resolvedTagValue, baseBundle);
 
             if (PlainTextComponentSerializer.plainText()
                     .serialize(tagComponent)
@@ -176,12 +175,13 @@ public class DiscordSRVHook {
                 tagComponent = Component.empty();
             }
 
-            layoutResolvers.add(Placeholder.component(tagEntry.getKey(), tagComponent));
+            resolvers.add(Placeholder.component(tagEntry.getKey(), tagComponent));
         }
 
         String resolvedFormat =
                 plugin.getFormatUtils().resolveEmbeddedPlaceholders(linkedPlayer, rawFormatTemplate, papiEnabled);
-        Component formattedComponent = MINI_MESSAGE.deserialize(resolvedFormat, TagResolver.resolver(layoutResolvers));
+
+        Component formattedComponent = MINI_MESSAGE.deserialize(resolvedFormat, TagResolver.resolver(resolvers));
 
         for (Player viewer : Bukkit.getOnlinePlayers()) {
             boolean hasPermission = viewer.hasPermission("yapper.channel." + matchedChannelId + ".view");

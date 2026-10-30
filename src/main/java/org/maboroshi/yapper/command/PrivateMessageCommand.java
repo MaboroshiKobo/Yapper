@@ -3,7 +3,6 @@ package org.maboroshi.yapper.command;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import java.util.ArrayList;
 import java.util.List;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -17,7 +16,6 @@ import org.maboroshi.yapper.Yapper;
 import org.maboroshi.yapper.config.MessageConfig;
 
 public class PrivateMessageCommand {
-    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private final Yapper plugin;
 
     public PrivateMessageCommand(Yapper plugin) {
@@ -49,15 +47,14 @@ public class PrivateMessageCommand {
         MessageConfig msgConfig = plugin.getConfigManager().getMessageConfig();
 
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(MINI_MESSAGE.deserialize(
-                    msgConfig.commands.playerOnly, Placeholder.parsed("prefix", msgConfig.prefix)));
+            sender.sendRichMessage(msgConfig.commands.playerOnly, Placeholder.parsed("prefix", msgConfig.prefix));
             return;
         }
 
         Player recipient = Bukkit.getPlayer(recipientName);
         if (recipient == null || !recipient.isOnline() || !player.canSee(recipient)) {
-            player.sendMessage(MINI_MESSAGE.deserialize(
-                    msgConfig.privateMessages.playerNotFound, Placeholder.parsed("prefix", msgConfig.prefix)));
+            sender.sendRichMessage(
+                    msgConfig.privateMessages.playerNotFound, Placeholder.parsed("prefix", msgConfig.prefix));
             return;
         }
 
@@ -72,8 +69,7 @@ public class PrivateMessageCommand {
         MessageConfig msgConfig = plugin.getConfigManager().getMessageConfig();
 
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(MINI_MESSAGE.deserialize(
-                    msgConfig.commands.playerOnly, Placeholder.parsed("prefix", msgConfig.prefix)));
+            sender.sendRichMessage(msgConfig.commands.playerOnly, Placeholder.parsed("prefix", msgConfig.prefix));
             return;
         }
 
